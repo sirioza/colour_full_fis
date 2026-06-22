@@ -2,40 +2,38 @@
 #include <Adafruit_ST7789.h>
 #include <Fonts/FreeSans9pt7b.h>
 #include <SPI.h>
-#include "config.h"
-#include "vehicle_utils.h"
-#include "persistent_state.h"
-#include "trip_memory.h"
-#include "string_utils.h"
-#include "icons.h"
-#include "graphics.h"
-#include "screen_fuel.h"
-#include "screen_engine.h"
-#include "screen_speed.h"
-#include "screen_dynamics.h"
-#include "screen_warnings.h"
+#include <cstdint>
+#include "src/config.h"
+#include "src/icons.h"
+#include "src/graphics.h"
+#include "src/screens/screen_fuel.h"
+#include "src/screens/screen_engine.h"
+#include "src/screens/screen_speed.h"
+#include "src/screens/screen_dynamics.h"
+#include "src/screens/screen_test.h"
+#include "src/screens/screen_warnings.h"
+#include "src/trip_history/persistent_state.h"
+#include "src/trip_history/trip_memory.h"
+#include "src/utils/vehicle_utils.h"
+#include "src/utils/string_utils.h"
 
-#if __has_include("local_config.h")
-#include "local_config.h"
+#if __has_include("src/local_config.h")
+#include "src/local_config.h"
 #endif
 
 #ifdef MOCK_CAN
-#include "mock_can.h"
+#include "src/mock_can.h"
 #else
 #include "driver/twai.h"
 #endif
 
-const uint32_t DTE_STOP_SAVE_INTERVAL_MS = 30000UL;
-const float ODOMETER_SAVE_SPEED_KMH = 5.0f;
-const float STOP_SPEED_KMH = 0.5f;
-const float DTE_LONG_TERM_ALPHA = 0.02f;
-
 enum Screen : int8_t {
-  SCREEN_FUEL = 1,
+  SCREEN_TEST = 1,
+  SCREEN_FUEL,
   SCREEN_ENGINE,
   SCREEN_SPEED,
   SCREEN_DYNAMICS,
-  FIRST_SCREEN = SCREEN_FUEL,
+  FIRST_SCREEN = SCREEN_TEST,
   LAST_SCREEN = SCREEN_DYNAMICS,
   SCREEN_WARNING = 100
 };
@@ -44,8 +42,8 @@ Adafruit_ST7789 tft(TFT_CS_PIN, TFT_DC_PIN, TFT_RST_PIN);
 Graphics gfx(tft);
 
 struct ScreenState {
-  int8_t position = SCREEN_FUEL;
-  int8_t previousPosition = SCREEN_FUEL;
+  int8_t position = FIRST_SCREEN ;
+  int8_t previousPosition = FIRST_SCREEN;
   bool redraw = true;
   uint32_t lastRefreshMs = 0;
   bool headerSeparatorDrawn = false;
@@ -56,7 +54,7 @@ struct DisplayCache {
   bool dteOldValid = false;
   bool dteDrawn = false;
   bool travelTimeDrawn = false;
-  uint32_t lastTravelTimeMinute = 0xFFFFFFFFUL;
+  uint32_t lastTravelTimeMinute = UINT32_MAX;
   int16_t distancePrevious = -1;
   uint8_t statusIcons = 0;
 };
@@ -82,6 +80,14 @@ Kombi2 kombi2;
 Kombi3 kombi3;
 Airbag1 airbag1;
 
+OdometerMemoryState odometerMemory;
+DteMemoryState dteMemory;
+
+const uint32_t DTE_STOP_SAVE_INTERVAL_MS = 30000UL;
+const float ODOMETER_SAVE_SPEED_KMH = 5.0f;
+const float STOP_SPEED_KMH = 0.5f;
+const float DTE_LONG_TERM_ALPHA = 0.02f;
+
 const uint16_t CAN_BUS_MESSAGE_TIMEOUT_MS = 1500;
 const uint16_t ABS_WARNING_STARTUP_GRACE_MS = 7000;
 const uint16_t NON_CRITICAL_FULLSCREEN_WARNING_MS = 5000;
@@ -89,28 +95,26 @@ uint32_t lastCanMessageTime = 0;
 uint32_t lastBreak1MessageTime = 0;
 bool canBusFault = false;
 
-const uint8_t titleIndent = 15;
-const uint8_t measurementIndent = 190;
-const uint8_t valueIndent = 183;
-const uint8_t blockIndent = 15;
+const uint8_t TITLE_INDENT = 15;
+const uint8_t MEASUREMENT_INDENT = 190;
+const uint8_t VALUE_INDENT = 183;
+const uint8_t BLOCK_INDENT = 15;
 
 const float DTE_MAX_KM = 999.0f;
 const uint8_t DTE_DISPLAY_STEP_KM = 10;
-OdometerMemoryState odometerMemory;
-DteMemoryState dteMemory;
 uint32_t lastDteStoppedSaveMs = 0;
 bool odometerCanSeen = false;
 bool tankCanSeen = false;
 bool engine5FuelAverageUpdatedSinceLastDte = false;
 bool odometerBelow5Saved = false;
 bool odometerFullStopSaved = false;
-const int16_t TRAVEL_TIME_VALUE_X = valueIndent - 75;
+const int16_t TRAVEL_TIME_VALUE_X = VALUE_INDENT - 75;
 const uint8_t TRAVEL_TIME_VALUE_CLEAR_W = 115;
 
 //Warnings
-const uint8_t yIcon = 70;
-const uint16_t yMainText = 240;
-const uint16_t ySecondText = 270;
+const uint8_t Y_ICON = 70;
+const uint16_t Y_MAIN_TEXT = 240;
+const uint16_t Y_SECOND_TEXT = 270;
 
 void applyScreenCommand(int8_t newPosition) {
   if (newPosition == screenState.position) {
@@ -181,8 +185,8 @@ void clearDrawnWarningContent() {
 void drawTravelTimeValue() {
   char travelTimeBuf[20];
   formatTimeMs(tripMemory.travelTimeMs, travelTimeBuf, sizeof(travelTimeBuf));
-  gfx.clearTextOverBackground(TRAVEL_TIME_VALUE_X, 150 + blockIndent - 16, TRAVEL_TIME_VALUE_CLEAR_W, 22, 0, 0);
-  gfx.drawText(travelTimeBuf, TRAVEL_TIME_VALUE_X, 150 + blockIndent, ILI9341_WHITE);
+  gfx.clearTextOverBackground(TRAVEL_TIME_VALUE_X, 150 + BLOCK_INDENT - 16, TRAVEL_TIME_VALUE_CLEAR_W, 22, 0, 0);
+  gfx.drawText(travelTimeBuf, TRAVEL_TIME_VALUE_X, 150 + BLOCK_INDENT, ILI9341_WHITE);
 }
 
 void markTripChanged() {
@@ -191,7 +195,7 @@ void markTripChanged() {
   displayCache.travelTimeDrawn = false;
   changes_status.fuelAverage = true;
   changes_status.fuelUsed = true;
-  changes_status.totalDistance = true;
+  changes_status.distance = true;
   changes_status.avgSpeed = true;
 }
 
@@ -305,22 +309,19 @@ void updatePersistentState(uint32_t currentMillis) {
 }
 
 void collapseExpiredNonCriticalFullscreenWarnings(uint32_t currentMillis) {
-  if (kombi1.showTankFullscreenWarn &&
-      kombi1.tankWarnActiveTime != 0 &&
+  if (kombi1.showTankFullscreenWarn && kombi1.tankWarnActiveTime != 0 &&
       (uint32_t)(currentMillis - kombi1.tankWarnActiveTime) >= NON_CRITICAL_FULLSCREEN_WARNING_MS) {
     kombi1.showTankFullscreenWarn = false;
     kombi1.tankFullscreenWarnCollapsed = true;
   }
 
-  if (airbag1.showAirbagFullscreenWarn &&
-      airbag1.airWarnActiveTime != 0 &&
+  if (airbag1.showAirbagFullscreenWarn && airbag1.airWarnActiveTime != 0 &&
       (uint32_t)(currentMillis - airbag1.airWarnActiveTime) >= NON_CRITICAL_FULLSCREEN_WARNING_MS) {
     airbag1.showAirbagFullscreenWarn = false;
     airbag1.airbagFullscreenWarnCollapsed = true;
   }
 
-  if (break1.showAbsFullscreenWarn &&
-      break1.absWarnActiveTime != 0 &&
+  if (break1.showAbsFullscreenWarn && break1.absWarnActiveTime != 0 &&
       (uint32_t)(currentMillis - break1.absWarnActiveTime) >= NON_CRITICAL_FULLSCREEN_WARNING_MS) {
     break1.showAbsFullscreenWarn = false;
     break1.absFullscreenWarnCollapsed = true;
@@ -372,7 +373,6 @@ void initWarnings(uint32_t currentMillis) {
 		if (warningUi.currentIdx != -1) {
 			screenState.redraw = true;
 			screenState.position = screenState.previousPosition;
-			//screenState.previousPosition = SCREEN_FUEL;
 		}
     warningUi.currentIdx = -1;
 		return; 
@@ -445,12 +445,15 @@ void mainDisplay(uint32_t currentMillis) {
     case SCREEN_SPEED: {
       int16_t distance = tripMemory.distanceMeters / 1000.0f;
       uint32_t travelTimeMinute = tripMemory.travelTimeMs / 60000UL;
-      screenChanged = screenChanged || changes_status.speed || changes_status.avgSpeed || changes_status.totalDistance || changes_status.odometer || diffInt16(distance, displayCache.distancePrevious) || displayCache.distancePrevious < 0 || !displayCache.travelTimeDrawn || travelTimeMinute != displayCache.lastTravelTimeMinute;
+      screenChanged = screenChanged || changes_status.speed || changes_status.avgSpeed || changes_status.distance || changes_status.odometer || diffInt16(distance, displayCache.distancePrevious) || displayCache.distancePrevious < 0 || !displayCache.travelTimeDrawn || travelTimeMinute != displayCache.lastTravelTimeMinute;
       break;
     }
     case SCREEN_DYNAMICS:
       screenChanged = screenChanged || changes_status.timeAccel100 || changes_status.timeAccel400m;
       break;
+    case SCREEN_TEST:
+      screenChanged = screenChanged || changes_status.distance;
+      break;      
     case SCREEN_WARNING:
       screenChanged = screenChanged || warningUi.next;
       break;
@@ -463,7 +466,7 @@ void mainDisplay(uint32_t currentMillis) {
     return;
   }
 
-  ScreenLayoutContext screenLayout = { gfx, tft, titleIndent, measurementIndent, blockIndent };
+  ScreenLayoutContext screenLayout = { gfx, tft, TITLE_INDENT, MEASUREMENT_INDENT, BLOCK_INDENT };
   char valueBuf[10];
   
   switch (screenState.position) {
@@ -476,16 +479,16 @@ void mainDisplay(uint32_t currentMillis) {
 
       if (changes_status.fuelRate) {
         valueToStr(valueBuf, sizeof(valueBuf), engine5.fuelRate);
-        gfx.drawRightAlignedText(valueBuf, valueIndent, 60 + blockIndent, ILI9341_WHITE, WIDTH_000_0_VAL);
+        gfx.drawRightAlignedText(valueBuf, VALUE_INDENT, 60 + BLOCK_INDENT, ILI9341_WHITE, WIDTH_000_0_VAL);
         changes_status.fuelRate = false;
       }
 
       if (changes_status.fuelAverage) {
         if(tripMemory.averageFuel != 0.0f) {
           valueToStr(valueBuf, sizeof(valueBuf), tripMemory.averageFuel, 1);
-          gfx.drawRightAlignedText(valueBuf, valueIndent, 90 + blockIndent, ILI9341_WHITE, WIDTH_000_0_VAL);
+          gfx.drawRightAlignedText(valueBuf, VALUE_INDENT, 90 + BLOCK_INDENT, ILI9341_WHITE, WIDTH_000_0_VAL);
         } else {
-          gfx.drawRightAlignedText("--.-", valueIndent, 90 + blockIndent, ILI9341_WHITE, WIDTH_000_0_VAL);
+          gfx.drawRightAlignedText("--.-", VALUE_INDENT, 90 + BLOCK_INDENT, ILI9341_WHITE, WIDTH_000_0_VAL);
         }
         
         changes_status.fuelAverage = false;
@@ -497,10 +500,10 @@ void mainDisplay(uint32_t currentMillis) {
       if (!displayCache.dteDrawn || dteValid != displayCache.dteOldValid || (dteValid && diffInt16(dteDisplayCurrent, displayCache.dteDisplayOld))) {
         if (dteValid) {
           valueToStrInt(valueBuf, sizeof(valueBuf), dteDisplayCurrent);
-          gfx.drawRightAlignedText(valueBuf, valueIndent, 120 + blockIndent, ILI9341_WHITE, WIDTH_0000_VAL);
+          gfx.drawRightAlignedText(valueBuf, VALUE_INDENT, 120 + BLOCK_INDENT, ILI9341_WHITE, WIDTH_0000_VAL);
           displayCache.dteDisplayOld = dteDisplayCurrent;
         } else {
-          gfx.drawRightAlignedText("---", valueIndent, 120 + blockIndent, ILI9341_WHITE, WIDTH_0000_VAL);
+          gfx.drawRightAlignedText("---", VALUE_INDENT, 120 + BLOCK_INDENT, ILI9341_WHITE, WIDTH_0000_VAL);
         }
         displayCache.dteOldValid = dteValid;
         displayCache.dteDrawn = true;
@@ -508,13 +511,13 @@ void mainDisplay(uint32_t currentMillis) {
 
       if (changes_status.fuelUsed) {
         valueToStr(valueBuf, sizeof(valueBuf), tripMemory.fuelUsed, 2);
-        gfx.drawRightAlignedText(valueBuf, valueIndent, 150 + blockIndent, ILI9341_WHITE, WIDTH_000_0_VAL);
+        gfx.drawRightAlignedText(valueBuf, VALUE_INDENT, 150 + BLOCK_INDENT, ILI9341_WHITE, WIDTH_000_0_VAL);
         changes_status.fuelUsed = false;
       }
 
       if (changes_status.tank) {
         valueToStrInt(valueBuf, sizeof(valueBuf), kombi1.tank);
-        gfx.drawRightAlignedText(valueBuf, valueIndent, 180 + blockIndent, kombi1.tankEmpty ? ILI9341_RED : ILI9341_WHITE, WIDTH_0000_VAL);
+        gfx.drawRightAlignedText(valueBuf, VALUE_INDENT, 180 + BLOCK_INDENT, kombi1.tankEmpty ? ILI9341_RED : ILI9341_WHITE, WIDTH_0000_VAL);
         changes_status.tank = false;
       }
       break;
@@ -528,31 +531,31 @@ void mainDisplay(uint32_t currentMillis) {
 
       if (changes_status.rpm) {
         valueToStrInt(valueBuf, sizeof(valueBuf), engine1.rpm);
-        gfx.drawRightAlignedText(valueBuf, valueIndent, 60 + blockIndent, ILI9341_WHITE, WIDTH_0000_VAL);
+        gfx.drawRightAlignedText(valueBuf, VALUE_INDENT, 60 + BLOCK_INDENT, ILI9341_WHITE, WIDTH_0000_VAL);
         changes_status.rpm = false;
       }
 
       if (changes_status.torque) {
         valueToStr(valueBuf, sizeof(valueBuf), engine1.torque, 0);
-        gfx.drawRightAlignedText(valueBuf, valueIndent, 90 + blockIndent, ILI9341_WHITE, WIDTH_0000_VAL);
+        gfx.drawRightAlignedText(valueBuf, VALUE_INDENT, 90 + BLOCK_INDENT, ILI9341_WHITE, WIDTH_0000_VAL);
         changes_status.torque = false;
       }
       
       if (changes_status.powerHp) {
         valueToStr(valueBuf, sizeof(valueBuf), engine1.powerHp, 0);
-        gfx.drawRightAlignedText(valueBuf, valueIndent, 120 + blockIndent, ILI9341_WHITE, WIDTH_0000_VAL);
+        gfx.drawRightAlignedText(valueBuf, VALUE_INDENT, 120 + BLOCK_INDENT, ILI9341_WHITE, WIDTH_0000_VAL);
         changes_status.powerHp = false;
       }
 
       if (changes_status.coolantTemp) {
         valueToStrInt(valueBuf, sizeof(valueBuf), engine2.coolantTemp);
-        gfx.drawRightAlignedText(valueBuf, valueIndent, 150 + blockIndent, ILI9341_WHITE, WIDTH_0000_VAL);
+        gfx.drawRightAlignedText(valueBuf, VALUE_INDENT, 150 + BLOCK_INDENT, ILI9341_WHITE, WIDTH_0000_VAL);
         changes_status.coolantTemp = false;
       }
 
       if (changes_status.outsideTemp) {
         valueToStr(valueBuf, sizeof(valueBuf), kombi2.outsideTemp);
-        gfx.drawRightAlignedText(valueBuf, valueIndent, 180 + blockIndent, ILI9341_WHITE, WIDTH_000_0_VAL);
+        gfx.drawRightAlignedText(valueBuf, VALUE_INDENT, 180 + BLOCK_INDENT, ILI9341_WHITE, WIDTH_000_0_VAL);
         changes_status.outsideTemp = false;
       }
       break;
@@ -566,22 +569,22 @@ void mainDisplay(uint32_t currentMillis) {
 
       if (changes_status.speed) {
         valueToStr(valueBuf, sizeof(valueBuf), kombi1.speed, 0);
-        gfx.drawRightAlignedText(valueBuf, valueIndent, 60 + blockIndent, ILI9341_WHITE, WIDTH_0000_VAL);
+        gfx.drawRightAlignedText(valueBuf, VALUE_INDENT, 60 + BLOCK_INDENT, ILI9341_WHITE, WIDTH_0000_VAL);
         changes_status.speed = false;
       }
 
       if (changes_status.avgSpeed) {
         valueToStr(valueBuf, sizeof(valueBuf), tripMemory.averageSpeed, 0);
-        gfx.drawRightAlignedText(valueBuf, valueIndent, 90 + blockIndent, ILI9341_WHITE, WIDTH_0000_VAL);
+        gfx.drawRightAlignedText(valueBuf, VALUE_INDENT, 90 + BLOCK_INDENT, ILI9341_WHITE, WIDTH_0000_VAL);
         changes_status.avgSpeed = false;
       }
 
       int16_t distance = tripMemory.distanceMeters / 1000.0f;
-      if (changes_status.totalDistance || diffInt16(distance, displayCache.distancePrevious) || displayCache.distancePrevious < 0) {
+      if (changes_status.distance || diffInt16(distance, displayCache.distancePrevious) || displayCache.distancePrevious < 0) {
         valueToStrInt(valueBuf, sizeof(valueBuf), distance);
-        gfx.drawRightAlignedText(valueBuf, valueIndent, 120 + blockIndent, ILI9341_WHITE, WIDTH_0000_VAL);
+        gfx.drawRightAlignedText(valueBuf, VALUE_INDENT, 120 + BLOCK_INDENT, ILI9341_WHITE, WIDTH_0000_VAL);
         displayCache.distancePrevious = distance;
-        changes_status.totalDistance = false;
+        changes_status.distance = false;
       }
       
       uint32_t travelTimeMinute = tripMemory.travelTimeMs / 60000UL;
@@ -593,7 +596,7 @@ void mainDisplay(uint32_t currentMillis) {
 
       if (changes_status.odometer) {
         valueToStrInt(valueBuf, sizeof(valueBuf), kombi3.odometer, 6);
-        gfx.drawRightAlignedText(valueBuf, valueIndent, 180 + blockIndent, ILI9341_WHITE, WIDTH_000000_VAL);
+        gfx.drawRightAlignedText(valueBuf, VALUE_INDENT, 180 + BLOCK_INDENT, ILI9341_WHITE, WIDTH_000000_VAL);
         changes_status.odometer = false;
       }
       break;
@@ -607,13 +610,13 @@ void mainDisplay(uint32_t currentMillis) {
 
       if (changes_status.timeAccel100) {
         valueToStr(valueBuf, sizeof(valueBuf), kombi1.timeAccel100);
-        gfx.drawRightAlignedText(valueBuf, valueIndent, 60 + blockIndent, ILI9341_WHITE, WIDTH_000_0_VAL);
+        gfx.drawRightAlignedText(valueBuf, VALUE_INDENT, 60 + BLOCK_INDENT, ILI9341_WHITE, WIDTH_000_0_VAL);
         changes_status.timeAccel100 = false;
       }
 
       if (changes_status.timeAccel400m) {
         valueToStr(valueBuf, sizeof(valueBuf), break2.timeAccel400m);
-        gfx.drawRightAlignedText(valueBuf, valueIndent, 90 + blockIndent, ILI9341_WHITE, WIDTH_000_0_VAL);
+        gfx.drawRightAlignedText(valueBuf, VALUE_INDENT, 90 + BLOCK_INDENT, ILI9341_WHITE, WIDTH_000_0_VAL);
         changes_status.timeAccel400m = false;
       }
       break;
@@ -635,68 +638,83 @@ void mainDisplay(uint32_t currentMillis) {
           case 0:
             gfx.drawWarningText("CAN BUS", 155, ILI9341_YELLOW, 2);
             gfx.drawWarningText("FAULT", 190, ILI9341_YELLOW, 2);
-            gfx.drawWarningText("Data temporarily unavailable.", 235, ILI9341_YELLOW);
+            gfx.drawWarningText("Data unavailable.", 235, ILI9341_YELLOW);
             break;
           case 1:
-            gfx.drawBrakeWarningIcon(50, yIcon + 8, ILI9341_RED);
-            gfx.drawWarningText("STOP!", yMainText, ILI9341_RED, 2);
-            gfx.drawWarningText("Check brake fluid.", ySecondText, ILI9341_RED);
+            gfx.drawBrakeWarningIcon(50, Y_ICON + 8, ILI9341_RED);
+            gfx.drawWarningText("STOP!", Y_MAIN_TEXT, ILI9341_RED, 2);
+            gfx.drawWarningText("Check brake fluid.", Y_SECOND_TEXT, ILI9341_RED);
             break;
           case 2:
-            gfx.drawOilPressureWarningIcon(13, yIcon + 8, ILI9341_RED);
-            gfx.drawWarningText("STOP!", yMainText, ILI9341_RED, 2);
-            gfx.drawWarningText("Stop engine. Check oil level.", ySecondText, ILI9341_RED);
+            gfx.drawOilPressureWarningIcon(13, Y_ICON + 8, ILI9341_RED);
+            gfx.drawWarningText("STOP!", Y_MAIN_TEXT, ILI9341_RED, 2);
+            gfx.drawWarningText("Stop engine. Check oil level.", Y_SECOND_TEXT, ILI9341_RED);
             break;
           case 3:
-            gfx.drawCoolantWarningIcon(50, yIcon + 8, ILI9341_RED);
-            gfx.drawWarningText("STOP!", yMainText, ILI9341_RED, 2);
-            gfx.drawWarningText("Stop engine. Coolant hot.", ySecondText, ILI9341_RED);
+            gfx.drawCoolantWarningIcon(50, Y_ICON + 8, ILI9341_RED);
+            gfx.drawWarningText("STOP!", Y_MAIN_TEXT, ILI9341_RED, 2);
+            gfx.drawWarningText("Stop engine. Coolant hot.", Y_SECOND_TEXT, ILI9341_RED);
             break;
           case 4:
-            gfx.drawCoolantWarningIcon(50, yIcon + 8, ILI9341_RED);
-            gfx.drawWarningText("STOP!", yMainText, ILI9341_RED, 2);
-            gfx.drawWarningText("Check coolant manually.", ySecondText, ILI9341_RED);
+            gfx.drawCoolantWarningIcon(50, Y_ICON + 8, ILI9341_RED);
+            gfx.drawWarningText("STOP!", Y_MAIN_TEXT, ILI9341_RED, 2);
+            gfx.drawWarningText("Check coolant manually.", Y_SECOND_TEXT, ILI9341_RED);
             break;
           case 5:
-            gfx.drawHandbrakeWarningIcon(50, yIcon + 8, ILI9341_RED);
-            gfx.drawWarningText("WARNING!", yMainText, ILI9341_RED, 2);
-            gfx.drawWarningText("Handbrake active.", ySecondText, ILI9341_RED);
+            gfx.drawHandbrakeWarningIcon(50, Y_ICON + 8, ILI9341_RED);
+            gfx.drawWarningText("WARNING!", Y_MAIN_TEXT, ILI9341_RED, 2);
+            gfx.drawWarningText("Handbrake active.", Y_SECOND_TEXT, ILI9341_RED);
             break;
           case 6:
-            gfx.drawDoorWarningIcon(50, yIcon - 6, ILI9341_RED);
-            gfx.drawWarningText("WARNING!", yMainText, ILI9341_RED, 2);
-            gfx.drawWarningText("Driver door open.", ySecondText, ILI9341_RED);
+            gfx.drawDoorWarningIcon(50, Y_ICON - 6, ILI9341_RED);
+            gfx.drawWarningText("WARNING!", Y_MAIN_TEXT, ILI9341_RED, 2);
+            gfx.drawWarningText("Driver door open.", Y_SECOND_TEXT, ILI9341_RED);
             break;
           case 7:
-            gfx.drawFuelWarningIcon(50, yIcon - 13, ILI9341_YELLOW);
-            gfx.drawWarningText("WARNING!", yMainText, ILI9341_YELLOW, 2);
-            gfx.drawWarningText("Please refuel", ySecondText, ILI9341_YELLOW);
+            gfx.drawFuelWarningIcon(50, Y_ICON - 13, ILI9341_YELLOW);
+            gfx.drawWarningText("WARNING!", Y_MAIN_TEXT, ILI9341_YELLOW, 2);
+            gfx.drawWarningText("Please refuel", Y_SECOND_TEXT, ILI9341_YELLOW);
             break;
           case 8:
-            gfx.drawAirbagWarningIcon(50, yIcon + 8, ILI9341_YELLOW);
-            gfx.drawWarningText("WARNING!", yMainText, ILI9341_YELLOW, 2);
-            gfx.drawWarningText("Airbag fault.", ySecondText, ILI9341_YELLOW);
+            gfx.drawAirbagWarningIcon(50, Y_ICON + 8, ILI9341_YELLOW);
+            gfx.drawWarningText("WARNING!", Y_MAIN_TEXT, ILI9341_YELLOW, 2);
+            gfx.drawWarningText("Airbag fault.", Y_SECOND_TEXT, ILI9341_YELLOW);
             break;
           case 9:
-            gfx.drawAbsWarningIcon(50, yIcon + 8, ILI9341_YELLOW);
-            gfx.drawWarningText("WARNING!", yMainText, ILI9341_YELLOW, 2);
-            gfx.drawWarningText(break1.absMessageTimeout ? "ABS CAN timeout." : "ABS fault.", ySecondText, ILI9341_YELLOW);
+            gfx.drawAbsWarningIcon(50, Y_ICON + 8, ILI9341_YELLOW);
+            gfx.drawWarningText("WARNING!", Y_MAIN_TEXT, ILI9341_YELLOW, 2);
+            gfx.drawWarningText(break1.absMessageTimeout ? "ABS CAN timeout." : "ABS fault.", Y_SECOND_TEXT, ILI9341_YELLOW);
             break;
           case 10:
-            gfx.drawCoolantWarningIcon(50, yIcon + 8, ILI9341_YELLOW);
-            gfx.drawWarningText("WARNING!", yMainText, ILI9341_YELLOW, 2);
-            gfx.drawWarningText("Coolant sensor fault.", ySecondText, ILI9341_YELLOW);
+            gfx.drawCoolantWarningIcon(50, Y_ICON + 8, ILI9341_YELLOW);
+            gfx.drawWarningText("WARNING!", Y_MAIN_TEXT, ILI9341_YELLOW, 2);
+            gfx.drawWarningText("Coolant sensor fault.", Y_SECOND_TEXT, ILI9341_YELLOW);
             break;
           case 11:
-            gfx.drawWashWarningIcon(50, yIcon - 2, ILI9341_YELLOW);
-            gfx.drawWarningText("WARNING!", yMainText, ILI9341_YELLOW, 2);
-            gfx.drawWarningText("Top up wash fluid.", ySecondText, ILI9341_YELLOW);
+            gfx.drawWashWarningIcon(50, Y_ICON - 2, ILI9341_YELLOW);
+            gfx.drawWarningText("WARNING!", Y_MAIN_TEXT, ILI9341_YELLOW, 2);
+            gfx.drawWarningText("Top up wash fluid.", Y_SECOND_TEXT, ILI9341_YELLOW);
             break;
         }
 
         warningUi.drawnIdx = warningUi.currentIdx;
         warningUi.next = false;
       }
+      break;
+    }
+    case SCREEN_TEST: {
+      if (screenState.redraw) {
+        gfx.drawScreenBackgroundKeepingHeaderSeparator(screenState.headerSeparatorDrawn);
+        drawTestDataScreenLayout(screenLayout, changes_status);
+        screenState.redraw = false;
+      }
+
+      valueToStrInt(valueBuf, sizeof(valueBuf), break2.impulses);
+      gfx.drawRightAlignedText(valueBuf, VALUE_INDENT, 60 + BLOCK_INDENT, ILI9341_WHITE, WIDTH_0000_VAL);
+
+      valueToStrInt(valueBuf, sizeof(valueBuf), tripMemory.distanceMeters);
+      gfx.drawRightAlignedText(valueBuf, VALUE_INDENT, 90 + BLOCK_INDENT, ILI9341_WHITE, WIDTH_0000_VAL);
+
       break;
     }
     default:
@@ -713,7 +731,7 @@ void mainDisplay(uint32_t currentMillis) {
   if (screenState.position != SCREEN_WARNING && statusChanged) {
     gfx.drawScreenFromStrip(295);
 
-    uint8_t iconX = blockIndent;
+    uint8_t iconX = BLOCK_INDENT;
     if (newState & BIT_FUEL) {
       gfx.drawIcon(fuelIcon, iconX, 295, ILI9341_YELLOW, 1);
       iconX += 30;
@@ -738,49 +756,40 @@ void mainDisplay(uint32_t currentMillis) {
 
 void parseCanBusData(unsigned long id, byte *buf, uint32_t time_now) {
   switch (id) {
-    case ENGINE1_ID: {
+    case ENGINE1_ID:
       parseEngine1(buf, engine1);
       break;
-    }
-    case ENGINE2_ID: {
+    case ENGINE2_ID:
       parseEngine2(buf, engine2);
       break;
-    }
-    case ENGINE5_ID: {
+    case ENGINE5_ID:
       parseEngine5(buf, engine5, time_now, break2.totalDistance);
       engine5FuelAverageUpdatedSinceLastDte = engine5FuelAverageUpdatedSinceLastDte || engine5.fuelAverageUpdated;
       break;
-    }
-    case BREAK1_ID: {
+    case BREAK1_ID:
       lastBreak1MessageTime = time_now;
       parseBreak1(buf, break1);
       break;
-    }
-    case BREAK2_ID: {
+    case BREAK2_ID:
       parseBreak2(buf, break2, time_now, screenState.position == SCREEN_DYNAMICS);
       break;
-    }
-    case KOMBI1_ID: {
+    case KOMBI1_ID:
       parseKombi1(buf, kombi1, time_now, screenState.position == SCREEN_DYNAMICS);
       tankCanSeen = true;
       break;
-    }
-    case KOMBI2_ID: {
+    case KOMBI2_ID:
       parseKombi2(buf, kombi2);
       break;
-    }
-		 case KOMBI3_ID: {
+		 case KOMBI3_ID:
       parseKombi3(buf, kombi3);
       odometerCanSeen = true;
       if (resolveTripMemoryByStandTime(engine5, break2, kombi1, kombi3, time_now)) {
         markTripChanged();
       }
       break;
-    }
-    case AIRBAG1_ID: {
+    case AIRBAG1_ID:
       parseAirbag1(buf, airbag1, time_now);
       break;
-    }
     default:
       break;
   }

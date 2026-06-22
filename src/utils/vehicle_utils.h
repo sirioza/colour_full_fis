@@ -1,4 +1,5 @@
 #pragma once
+
 #include <Arduino.h>
 
 struct Engine1 {
@@ -52,7 +53,7 @@ struct Break1 {
 
 struct Break2 {
     float totalDistance;                // meters
-    int16_t lastImpulses;
+    int16_t impulses;
 
     float startDistance;
     uint32_t timeStart;
@@ -70,13 +71,13 @@ struct Kombi1 {
     bool driverDoorOpen;
     bool handBrakeActive;
 
-    bool tankEmpty;                     // Alias: low fuel warning lamp.
+    bool tankEmpty;                 // Alias: low fuel warning lamp.
     bool tankWarn;
     bool tankError;
     uint8_t tank;
     uint32_t tankWarnActiveTime;
     bool showTankFullscreenWarn;
-    bool tankFullscreenWarnCollapsed;
+    bool tankFullscreenWarnCollapsed; 
 
     //SPEED    
     float speed;
@@ -121,7 +122,7 @@ struct ChangesState {
     bool outsideTemp;
     bool speed;
     bool avgSpeed;
-    bool totalDistance;
+    bool distance;
     bool timeAccel100;
     bool timeAccel400m;
     bool powerHp;

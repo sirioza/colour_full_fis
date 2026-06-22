@@ -1,3 +1,4 @@
+#include <Arduino.h>
 #include "string_utils.h"
 
 static uint32_t pow10u(uint8_t precision) {

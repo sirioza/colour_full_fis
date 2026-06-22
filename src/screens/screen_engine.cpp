@@ -1,3 +1,4 @@
+#include <Arduino.h>
 #include "screen_engine.h"
 
 void drawEngineScreenLayout(const ScreenLayoutContext& ui, ChangesState& changes) {

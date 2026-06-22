@@ -1,3 +1,4 @@
+#include <Arduino.h>
 #include "screen_dynamics.h"
 
 void drawDynamicsScreenLayout(const ScreenLayoutContext& ui, ChangesState& changes) {

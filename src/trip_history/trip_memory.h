@@ -2,7 +2,7 @@
 
 #include <Arduino.h>
 #include "persistent_state.h"
-#include "vehicle_utils.h"
+#include "../utils/vehicle_utils.h"
 
 extern TripMemoryState tripMemory;
 

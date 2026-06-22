@@ -2,7 +2,7 @@
 
 #include <Arduino.h>
 #include <Adafruit_ST7789.h>
-#include "graphics.h"
+#include "../graphics.h"
 
 struct ScreenLayoutContext {
   Graphics& gfx;

@@ -1,0 +1,1 @@
+#define MOCK_CAN

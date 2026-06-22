@@ -1,3 +1,4 @@
+#include <Arduino.h>
 #include "vehicle_utils.h"
 #include <stdint.h>
 #include "string_utils.h"
@@ -205,31 +206,31 @@ void parseBreak2(uint8_t buf[8], Break2 &s, uint32_t time_now, bool measurement_
   uint16_t currentImpulses = ((uint16_t)buf[6] << 8) | buf[5];
 
   if (currentImpulses == 0) {
-    s.lastImpulses = 0;
+    s.impulses = 0;
     return;
   }
 
   if (!s.initialized) {
-    s.lastImpulses = currentImpulses;
+    s.impulses = currentImpulses;
     s.initialized = true;
     return;
   }
 
   int16_t delta;
-  if (currentImpulses >= s.lastImpulses) {
+  if (currentImpulses >= s.impulses) {
     // 0→4095, 2048→4095
-    delta = currentImpulses - s.lastImpulses;
+    delta = currentImpulses - s.impulses;
   } else {
     // 4095→2048
-    delta = (IMPULSE_MAX_VALUE - s.lastImpulses + 1) + (currentImpulses - IMPULSE_MIN_VALUE);
+    delta = (IMPULSE_MAX_VALUE - s.impulses + 1) + (currentImpulses - IMPULSE_MIN_VALUE);
   }
 
   float distanceBefore = s.totalDistance;
   float currentTotalDistance = (float)delta / IMPULSES_KOEF;
 
   s.totalDistance += currentTotalDistance;
-  changes_status.totalDistance = changes_status.totalDistance || diffFloat(currentTotalDistance, 0.0f, 1);
-  s.lastImpulses = currentImpulses;
+  s.impulses = currentImpulses;
+  changes_status.distance = changes_status.distance || diffFloat(currentTotalDistance, 0.0f, 1);
 
   if (!measurement_mode){
     s.timeStart = 0;

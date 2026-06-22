@@ -1,3 +1,4 @@
+#include <Arduino.h>
 #include "screen_fuel.h"
 
 void drawFuelScreenLayout(const ScreenLayoutContext& ui, ChangesState& changes, bool& dteDrawn) {

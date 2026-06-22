@@ -130,6 +130,7 @@ bool loadTripMemory(TripMemoryState& state) {
   state.averageSpeed = record.averageSpeed;
   cachedTrip = record;
   cachedTripValid = true;
+  
   return true;
 }
 
