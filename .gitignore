@@ -2,5 +2,7 @@
 # This .gitignore file was automatically created by Microsoft(R) Visual Studio.
 ################################################################################
 
-/.vs
-/interface-cars-car-dashboard-icons-vector-illustration_924514-967.avif
+.pio/
+.vscode/
+.vs/
+/icons.avif

@@ -1,28 +1,25 @@
+#include <Arduino.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_ST7789.h>
 #include <Fonts/FreeSans9pt7b.h>
 #include <SPI.h>
 #include <cstdint>
-#include "src/config.h"
-#include "src/icons.h"
-#include "src/graphics.h"
-#include "src/screens/screen_fuel.h"
-#include "src/screens/screen_engine.h"
-#include "src/screens/screen_speed.h"
-#include "src/screens/screen_dynamics.h"
-#include "src/screens/screen_test.h"
-#include "src/screens/screen_warnings.h"
-#include "src/trip_history/persistent_state.h"
-#include "src/trip_history/trip_memory.h"
-#include "src/utils/vehicle_utils.h"
-#include "src/utils/string_utils.h"
-
-#if __has_include("src/local_config.h")
-#include "src/local_config.h"
-#endif
+#include "config.h"
+#include "icons.h"
+#include "graphics.h"
+#include "screens/screen_fuel.h"
+#include "screens/screen_engine.h"
+#include "screens/screen_speed.h"
+#include "screens/screen_dynamics.h"
+#include "screens/screen_test.h"
+#include "screens/screen_warnings.h"
+#include "trip_history/persistent_state.h"
+#include "trip_history/trip_memory.h"
+#include "utils/vehicle_utils.h"
+#include "utils/string_utils.h"
 
 #ifdef MOCK_CAN
-#include "src/mock_can.h"
+#include "mock_can.h"
 #else
 #include "driver/twai.h"
 #endif
