@@ -108,7 +108,7 @@ bool odometerFullStopSaved = false;
 const int16_t TRAVEL_TIME_VALUE_X = VALUE_INDENT - 75;
 const uint8_t TRAVEL_TIME_VALUE_CLEAR_W = 115;
 
-//Warnings
+// Warnings
 const uint8_t Y_ICON = 70;
 const uint16_t Y_MAIN_TEXT = 240;
 const uint16_t Y_SECOND_TEXT = 270;
@@ -120,9 +120,9 @@ void applyScreenCommand(int8_t newPosition) {
 
   screenState.position = newPosition;
 	screenState.redraw = true;
+  screenState.lastRefreshMs = 0;
   warningUi.previousMillis = 0;
   warningUi.currentIdx = -1;
-  screenState.lastRefreshMs = 0;
 }
 
 void switchScreen(int8_t direction) {
@@ -131,14 +131,17 @@ void switchScreen(int8_t direction) {
   }
 
   int8_t screen = screenState.position;
-
   if (screen < FIRST_SCREEN || screen > LAST_SCREEN) {
     screen = (direction > 0) ? FIRST_SCREEN : LAST_SCREEN;
   } else {
     screen += direction;
 
-    if (screen > LAST_SCREEN) screen = FIRST_SCREEN;
-    if (screen < FIRST_SCREEN) screen = LAST_SCREEN;
+    if (screen > LAST_SCREEN){
+      screen = FIRST_SCREEN;
+    }
+    if (screen < FIRST_SCREEN){
+      screen = LAST_SCREEN;
+    }
   }
 
   applyScreenCommand(screen);
@@ -146,11 +149,7 @@ void switchScreen(int8_t direction) {
 
 void handleButtons() {
   static bool nextPressed = false;
-  static bool prevPressed = false;
-
   bool nextState = digitalRead(BTN_NEXT);
-  bool prevState = digitalRead(BTN_PREV);
-
   if (!nextPressed && nextState == LOW) {
     nextPressed = true;
     switchScreen(+1);
@@ -160,6 +159,8 @@ void handleButtons() {
     nextPressed = false;
   }
 
+  static bool prevPressed = false;
+  bool prevState = digitalRead(BTN_PREV);
   if (!prevPressed && prevState == LOW) {
     prevPressed = true;
     switchScreen(-1);
@@ -301,6 +302,7 @@ void updatePersistentState(uint32_t currentMillis) {
   if (updateTripMemory(engine5, break2, kombi1, currentMillis)) {
     markTripChanged();
   }
+
   updateDteMemory(currentMillis);
   updateOdometerMemory();
 }
@@ -820,22 +822,6 @@ void updateCanTimeoutWarnings(uint32_t time_now) {
   updateAbsWarningState(break1);
 }
 
-void printFrame(unsigned long id, byte len, const byte *buf) {
-  if(id == ENGINE6_ID || id == BREAK3_ID || id == SYSTEMINFO1_ID || id == NO_FOUND_ID) return;
-  Serial.print("{0x");
-  Serial.print(id, HEX);
-  Serial.print(", ");
-  Serial.print(len);
-  Serial.print(", {");
-  for (byte i = 0; i < len; i++) {
-    Serial.print("0x");
-    if (buf[i] < 0x10) Serial.print("0");
-    Serial.print(buf[i], HEX);
-    if (i < len - 1) Serial.print(",");
-  }
-  Serial.println("}},");
-}
-
 void setup() {
   Serial.begin(115200);
 
@@ -868,14 +854,12 @@ void setup() {
     twai_start();
   }
   #else
-  CAN.begin(0,0,0);
+  CAN.begin(0, 0, 0);
   #endif
 }
 
 void loop() {
   uint32_t currentMillis = millis();
-
-  handleButtons();
 
   //CAN START
   #ifdef MOCK_CAN
@@ -910,12 +894,13 @@ void loop() {
 
   currentMillis = millis();
   updatePersistentState(currentMillis);
-
   updateCanTimeoutWarnings(currentMillis);
 
   if (currentMillis < 3000) {
     return;
   }
+
+  handleButtons();
 
   initWarnings(currentMillis);
   mainDisplay(currentMillis);
