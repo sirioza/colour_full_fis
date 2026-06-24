@@ -1,5 +1,3 @@
-![photo_2025-11-15_20-58-32](https://github.com/user-attachments/assets/10ebe083-831b-4df1-a612-4b6c2aa6c215)
-
 ## Build modes
 
 <img width="921" height="1136" alt="photo_2026-06-21_19-32-18" src="https://github.com/user-attachments/assets/d5847e3c-1834-46da-865d-b367f1320bf0" />
