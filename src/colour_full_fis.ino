@@ -63,9 +63,18 @@ struct WarningUiState {
   bool next = false;
 };
 
+struct ButtonState {
+  uint8_t pin;
+  int8_t direction;
+  bool pressed;
+  uint32_t debounceTime;
+};
+
 ScreenState screenState;
 DisplayCache displayCache;
 WarningUiState warningUi;
+OdometerMemoryState odometerMemory;
+DteMemoryState dteMemory;
 
 Engine1 engine1;
 Engine2 engine2;
@@ -76,9 +85,6 @@ Kombi1 kombi1;
 Kombi2 kombi2;
 Kombi3 kombi3;
 Airbag1 airbag1;
-
-OdometerMemoryState odometerMemory;
-DteMemoryState dteMemory;
 
 const uint32_t DTE_STOP_SAVE_INTERVAL_MS = 30000UL;
 const float ODOMETER_SAVE_SPEED_KMH = 5.0f;
@@ -96,6 +102,9 @@ const uint8_t TITLE_INDENT = 15;
 const uint8_t MEASUREMENT_INDENT = 190;
 const uint8_t VALUE_INDENT = 183;
 const uint8_t BLOCK_INDENT = 15;
+
+const uint8_t DEBOUNCE_TIME = 50;
+static ButtonState buttons[] = {{ BTN_NEXT, +1, false, 0 }, { BTN_PREV, -1, false, 0 }};
 
 const float DTE_MAX_KM = 999.0f;
 const uint8_t DTE_DISPLAY_STEP_KM = 10;
@@ -148,26 +157,21 @@ void switchScreen(int8_t direction) {
 }
 
 void handleButtons() {
-  static bool nextPressed = false;
-  bool nextState = digitalRead(BTN_NEXT);
-  if (!nextPressed && nextState == LOW) {
-    nextPressed = true;
-    switchScreen(+1);
-  }
+  uint32_t now = millis();
 
-  if (nextState == HIGH) {
-    nextPressed = false;
-  }
+  for (auto &btn : buttons) {
+    bool state = digitalRead(btn.pin);
 
-  static bool prevPressed = false;
-  bool prevState = digitalRead(BTN_PREV);
-  if (!prevPressed && prevState == LOW) {
-    prevPressed = true;
-    switchScreen(-1);
-  }
+    if (!btn.pressed && state == LOW && now - btn.debounceTime > DEBOUNCE_TIME) {
+      btn.pressed = true;
+      btn.debounceTime = now;
+      switchScreen(btn.direction);
+      return;
+    }
 
-  if (prevState == HIGH) {
-    prevPressed = false;
+    if (state == HIGH) {
+      btn.pressed = false;
+    }
   }
 }
 
@@ -451,7 +455,7 @@ void mainDisplay(uint32_t currentMillis) {
       screenChanged = screenChanged || changes_status.timeAccel100 || changes_status.timeAccel400m;
       break;
     case SCREEN_TEST:
-      screenChanged = screenChanged || changes_status.distance;
+      screenChanged = screenChanged || changes_status.impulses;
       break;      
     case SCREEN_WARNING:
       screenChanged = screenChanged || warningUi.next;
@@ -620,6 +624,23 @@ void mainDisplay(uint32_t currentMillis) {
       }
       break;
     }
+    case SCREEN_TEST: {
+      if (screenState.redraw) {
+        gfx.drawScreenBackgroundKeepingHeaderSeparator(screenState.headerSeparatorDrawn);
+        drawTestDataScreenLayout(screenLayout, changes_status);
+        screenState.redraw = false;
+      }
+
+      if (changes_status.impulses) {
+        valueToStrInt(valueBuf, sizeof(valueBuf), break2.totalImpulses, 8);
+        gfx.drawRightAlignedText(valueBuf, VALUE_INDENT, 60 + BLOCK_INDENT, ILI9341_WHITE, WIDTH_0000_VAL);
+
+        valueToStrInt(valueBuf, sizeof(valueBuf), tripMemory.distanceMeters, 7);
+        gfx.drawRightAlignedText(valueBuf, VALUE_INDENT, 90 + BLOCK_INDENT, ILI9341_WHITE, WIDTH_0000_VAL);
+        changes_status.impulses = false;
+      }
+      break;
+    }
     case SCREEN_WARNING: {
       if (screenState.redraw) {
         gfx.drawScreenBackgroundKeepingHeaderSeparator(screenState.headerSeparatorDrawn);
@@ -699,21 +720,6 @@ void mainDisplay(uint32_t currentMillis) {
         warningUi.drawnIdx = warningUi.currentIdx;
         warningUi.next = false;
       }
-      break;
-    }
-    case SCREEN_TEST: {
-      if (screenState.redraw) {
-        gfx.drawScreenBackgroundKeepingHeaderSeparator(screenState.headerSeparatorDrawn);
-        drawTestDataScreenLayout(screenLayout, changes_status);
-        screenState.redraw = false;
-      }
-
-      valueToStrInt(valueBuf, sizeof(valueBuf), break2.impulses);
-      gfx.drawRightAlignedText(valueBuf, VALUE_INDENT, 60 + BLOCK_INDENT, ILI9341_WHITE, WIDTH_0000_VAL);
-
-      valueToStrInt(valueBuf, sizeof(valueBuf), tripMemory.distanceMeters);
-      gfx.drawRightAlignedText(valueBuf, VALUE_INDENT, 90 + BLOCK_INDENT, ILI9341_WHITE, WIDTH_0000_VAL);
-
       break;
     }
     default:

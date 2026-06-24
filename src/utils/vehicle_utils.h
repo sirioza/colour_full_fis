@@ -24,7 +24,7 @@ struct Engine5 {
     uint16_t fuelNow;
     uint16_t fuelLast;
     float fuelAverage;      			// l/100 - fuel average consumption
-    float fuelBuffer[20] = {0};
+    float fuelBuffer[50] = {0};
     uint8_t fuelPointer = 0;
     float fuelRate;                 	// l - fuel instantan consumption
     float fuelUsed;                     // l
@@ -54,6 +54,7 @@ struct Break1 {
 struct Break2 {
     float totalDistance;                // meters
     int16_t impulses;
+    uint32_t totalImpulses;
 
     float startDistance;
     uint32_t timeStart;
@@ -127,6 +128,9 @@ struct ChangesState {
     bool timeAccel400m;
     bool powerHp;
     bool odometer;
+
+    // test data
+    bool impulses;
 };
 
 struct ErrorState {

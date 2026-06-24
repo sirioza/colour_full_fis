@@ -8,7 +8,7 @@ ErrorState error_state;
 
 const int16_t  IMPULSE_MAX_VALUE = 4095;
 const int16_t  IMPULSE_MIN_VALUE = 2048;
-const float  IMPULSES_KOEF = 44.6f;
+const float  IMPULSES_KOEF = 45.0f;
 
 const float MIN_KM = 0.03f;
 const float SMOOTH_KM = 2.0f;
@@ -31,12 +31,12 @@ void parseEngine1(uint8_t buf[8], Engine1 &s) {
   s.isRunning = s.rpm != 0;
 
   uint8_t rawActualTorque = buf[1];
-  uint8_t rawLossTorque = buf[6];
-  uint8_t rawDriverRequestTorque = buf[7];
   if (rawActualTorque == IMPLAUSIBLE_VALUE_HEX) {
     return;
   }
 
+  uint8_t rawLossTorque = buf[6];
+  uint8_t rawDriverRequestTorque = buf[7];
   s.torquePercent = (float)rawActualTorque * TORQUE_PERCENT_FACTOR;
   s.indicatedTorque = engineTorqueNormNm * (s.torquePercent / 100.0f);
   s.lossTorque = rawLossTorque == IMPLAUSIBLE_VALUE_HEX
@@ -218,12 +218,16 @@ void parseBreak2(uint8_t buf[8], Break2 &s, uint32_t time_now, bool measurement_
 
   int16_t delta;
   if (currentImpulses >= s.impulses) {
-    // 0→4095, 2048→4095
+    // first 0→4095 and next 2048→4095
     delta = currentImpulses - s.impulses;
   } else {
     // 4095→2048
     delta = (IMPULSE_MAX_VALUE - s.impulses + 1) + (currentImpulses - IMPULSE_MIN_VALUE);
   }
+
+  int32_t impulsesOld = s.totalImpulses;
+  s.totalImpulses += delta;
+  changes_status.impulses = changes_status.impulses || diffInt32(s.totalImpulses, impulsesOld);
 
   float distanceBefore = s.totalDistance;
   float currentTotalDistance = (float)delta / IMPULSES_KOEF;
