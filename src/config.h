@@ -47,7 +47,7 @@
 
 // SCREEN
 #define SCREEN_WIDTH        240
-#define STRIP_HEIGHT        31
+#define STRIP_HEIGHT        320
 #define SCREEN_HEIGHT       320
 #define REFRESH_SCREEN_TIME 300
 #define WIDTH_0000_VAL      48
