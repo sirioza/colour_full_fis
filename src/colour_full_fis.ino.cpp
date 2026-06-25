@@ -1,3 +1,6 @@
+# 1 "C:\\Users\\SergS\\AppData\\Local\\Temp\\tmpfpiwvyen"
+#include <Arduino.h>
+# 1 "E:/Projects/colour_full_fis_public/src/colour_full_fis.ino"
 #include <Arduino.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_ST7789.h>
@@ -117,18 +120,37 @@ bool odometerFullStopSaved = false;
 const int16_t TIME_VALUE_X = VALUE_INDENT - 75;
 const uint8_t TIME_VALUE_CLEAR_W = 115;
 
-// Warnings
+
 const uint8_t Y_ICON = 70;
 const uint16_t Y_MAIN_TEXT = 240;
 const uint16_t Y_SECOND_TEXT = 270;
-
+void applyScreenCommand(int8_t newPosition);
+void switchScreen(int8_t direction);
+void handleButtons();
+void clearDrawnWarningContent();
+void drawTravelTimeValue();
+void markTripChanged();
+void loadPersistentState(uint32_t currentMillis);
+void updateDteMemory(uint32_t currentMillis);
+void updateOdometerMemory();
+uint16_t roundDteForDisplay(float dteKm);
+void updatePersistentState(uint32_t currentMillis);
+void collapseExpiredNonCriticalFullscreenWarnings(uint32_t currentMillis);
+void startNonCriticalFullscreenWarningTimer(int8_t warnIdx, uint32_t currentMillis);
+void initWarnings(uint32_t currentMillis);
+void mainDisplay(uint32_t currentMillis);
+void parseCanBusData(unsigned long id, byte *buf, uint32_t time_now);
+void updateCanTimeoutWarnings(uint32_t time_now);
+void setup();
+void loop();
+#line 125 "E:/Projects/colour_full_fis_public/src/colour_full_fis.ino"
 void applyScreenCommand(int8_t newPosition) {
   if (newPosition == screenState.position) {
     return;
   }
 
   screenState.position = newPosition;
-	screenState.redraw = true;
+ screenState.redraw = true;
   screenState.lastRefreshMs = 0;
   warningUi.previousMillis = 0;
   warningUi.currentIdx = -1;
@@ -371,53 +393,53 @@ void initWarnings(uint32_t currentMillis) {
   if (currentMillis >= ABS_WARNING_STARTUP_GRACE_MS && break1.absErr && break1.showAbsFullscreenWarn) warningsMask |= (1 << 9);
   if (engine2.coolantError) warningsMask |= (1 << 10);
 
-	// hide warning diplay and to redirect to previous display
-	if (warningsMask == 0) {
-		if (warningUi.currentIdx != -1) {
-			screenState.redraw = true;
-			screenState.position = screenState.previousPosition;
-		}
+
+ if (warningsMask == 0) {
+  if (warningUi.currentIdx != -1) {
+   screenState.redraw = true;
+   screenState.position = screenState.previousPosition;
+  }
     warningUi.currentIdx = -1;
-		return; 
+  return;
   }
 
-	// to applay warning display
+
   if (screenState.position != SCREEN_WARNING) {
     screenState.redraw = true;
     screenState.previousPosition = screenState.position;
   }
   screenState.position = SCREEN_WARNING;
 
-	// set warning index 
-	bool timeElapsed = (currentMillis - warningUi.previousMillis >= error_state.interval);
-	bool currentWarnActive = (warningUi.currentIdx != -1 && (warningsMask & (1 << warningUi.currentIdx)));
-	error_state.errorsCount = 0;
-	for (uint8_t i = 0; i < numWarnings; i++) {
-		if (warningsMask & (1 << i)) {
-			error_state.errorsCount++;
-		}
-	}
 
-	if (!currentWarnActive || (timeElapsed && error_state.errorsCount > 1)) {
-		warningUi.previousMillis = currentMillis;
-		int8_t startIndex = (warningUi.currentIdx + 1) % numWarnings;
-		for (uint8_t i = 0; i < numWarnings; i++) {
-			int8_t checkIndex = (startIndex + i) % numWarnings;
-			if (warningsMask & (1 << checkIndex)) {
-				warningUi.currentIdx = checkIndex;
-				warningUi.next = true;
-				break;
-			}
-		}
-	}
+ bool timeElapsed = (currentMillis - warningUi.previousMillis >= error_state.interval);
+ bool currentWarnActive = (warningUi.currentIdx != -1 && (warningsMask & (1 << warningUi.currentIdx)));
+ error_state.errorsCount = 0;
+ for (uint8_t i = 0; i < numWarnings; i++) {
+  if (warningsMask & (1 << i)) {
+   error_state.errorsCount++;
+  }
+ }
+
+ if (!currentWarnActive || (timeElapsed && error_state.errorsCount > 1)) {
+  warningUi.previousMillis = currentMillis;
+  int8_t startIndex = (warningUi.currentIdx + 1) % numWarnings;
+  for (uint8_t i = 0; i < numWarnings; i++) {
+   int8_t checkIndex = (startIndex + i) % numWarnings;
+   if (warningsMask & (1 << checkIndex)) {
+    warningUi.currentIdx = checkIndex;
+    warningUi.next = true;
+    break;
+   }
+  }
+ }
 
   startNonCriticalFullscreenWarningTimer(warningUi.currentIdx, currentMillis);
 }
 
 void mainDisplay(uint32_t currentMillis) {
-	if (!screenState.redraw && (uint32_t)(currentMillis - screenState.lastRefreshMs) <= REFRESH_SCREEN_TIME) {
-		return;
-	}
+ if (!screenState.redraw && (uint32_t)(currentMillis - screenState.lastRefreshMs) <= REFRESH_SCREEN_TIME) {
+  return;
+ }
 
   uint8_t newState = 0;
   if(screenState.position != SCREEN_WARNING) {
@@ -435,7 +457,7 @@ void mainDisplay(uint32_t currentMillis) {
     }
   }
 
-  bool statusChanged = screenState.position != SCREEN_WARNING  && newState != displayCache.statusIcons;
+  bool statusChanged = screenState.position != SCREEN_WARNING && newState != displayCache.statusIcons;
   bool screenChanged = screenState.redraw;
 
   switch (screenState.position) {
@@ -456,7 +478,7 @@ void mainDisplay(uint32_t currentMillis) {
       break;
     case SCREEN_TEST:
       screenChanged = screenChanged || changes_status.impulses || changes_status.idleTime || changes_status.graStatus;
-      break;      
+      break;
     case SCREEN_WARNING:
       screenChanged = screenChanged || warningUi.next;
       break;
@@ -471,7 +493,7 @@ void mainDisplay(uint32_t currentMillis) {
 
   ScreenLayoutContext screenLayout = { gfx, tft, TITLE_INDENT, MEASUREMENT_INDENT, BLOCK_INDENT };
   char valueBuf[10];
-  
+
   switch (screenState.position) {
     case SCREEN_FUEL: {
       if (screenState.redraw) {
@@ -493,7 +515,7 @@ void mainDisplay(uint32_t currentMillis) {
         } else {
           gfx.drawRightAlignedText("--.-", VALUE_INDENT, 90 + BLOCK_INDENT, ILI9341_WHITE, WIDTH_000_0_VAL);
         }
-        
+
         changes_status.fuelAverage = false;
       }
 
@@ -543,7 +565,7 @@ void mainDisplay(uint32_t currentMillis) {
         gfx.drawRightAlignedText(valueBuf, VALUE_INDENT, 90 + BLOCK_INDENT, ILI9341_WHITE, WIDTH_0000_VAL);
         changes_status.torque = false;
       }
-      
+
       if (changes_status.powerHp) {
         valueToStr(valueBuf, sizeof(valueBuf), engine1.powerHp, 0);
         gfx.drawRightAlignedText(valueBuf, VALUE_INDENT, 120 + BLOCK_INDENT, ILI9341_WHITE, WIDTH_0000_VAL);
@@ -589,7 +611,7 @@ void mainDisplay(uint32_t currentMillis) {
         displayCache.distancePrevious = distance;
         changes_status.distance = false;
       }
-      
+
       uint32_t travelTimeMinute = tripMemory.travelTimeMs / 60000UL;
       if (!displayCache.travelTimeDrawn || travelTimeMinute != displayCache.lastTravelTimeMinute) {
         displayCache.lastTravelTimeMinute = travelTimeMinute;
@@ -639,7 +661,7 @@ void mainDisplay(uint32_t currentMillis) {
         gfx.drawRightAlignedText(valueBuf, VALUE_INDENT, 90 + BLOCK_INDENT, ILI9341_WHITE, WIDTH_0000_VAL);
         changes_status.impulses = false;
       }
-      
+
       if (changes_status.idleTime) {
         char idleTimeBuf[20];
         gfx.clearTextOverBackground(TIME_VALUE_X, 120 + BLOCK_INDENT - 16, TIME_VALUE_CLEAR_W, 22, 0, 0);
@@ -691,7 +713,7 @@ void mainDisplay(uint32_t currentMillis) {
         drawWarningsScreenLayout(screenLayout);
         warningUi.drawnIdx = -1;
         screenState.redraw = false;
-      }				
+      }
 
       if (warningUi.next) {
         clearDrawnWarningContent();
@@ -827,7 +849,7 @@ void parseCanBusData(unsigned long id, byte *buf, uint32_t time_now) {
     case KOMBI2_ID:
       parseKombi2(buf, kombi2);
       break;
-		 case KOMBI3_ID:
+   case KOMBI3_ID:
       parseKombi3(buf, kombi3);
       odometerCanSeen = true;
       if (resolveTripMemoryByStandTime(engine5, break2, kombi1, kombi3, time_now)) {
@@ -843,9 +865,9 @@ void parseCanBusData(unsigned long id, byte *buf, uint32_t time_now) {
 }
 
 void updateCanTimeoutWarnings(uint32_t time_now) {
-	#ifdef MOCK_CAN // for the test mode
-		return;
-	#endif
+ #ifdef MOCK_CAN
+  return;
+ #endif
 
   if (time_now < ABS_WARNING_STARTUP_GRACE_MS) {
     return;
@@ -888,11 +910,11 @@ void setup() {
   tft.setRotation(TFT_ROTATION);
   tft.setFont(&FreeSans9pt7b);
 
-	gfx.drawScreenFromStrip();
-	gfx.drawText("WELCOME", 30, 170, ILI9341_WHITE, 0, 2);
+ gfx.drawScreenFromStrip();
+ gfx.drawText("WELCOME", 30, 170, ILI9341_WHITE, 0, 2);
 
-  //CAN
-	#ifndef MOCK_CAN
+
+ #ifndef MOCK_CAN
   twai_general_config_t generalConfig = TWAI_GENERAL_CONFIG_DEFAULT((gpio_num_t)CAN_TX_PIN, (gpio_num_t)CAN_RX_PIN, TWAI_MODE_NORMAL);
   generalConfig.rx_queue_len = 128;
   generalConfig.tx_queue_len = 0;
@@ -909,7 +931,7 @@ void setup() {
 void loop() {
   uint32_t currentMillis = millis();
 
-  //CAN START
+
   #ifdef MOCK_CAN
   while (CAN.checkReceive() == CAN_MSGAVAIL) {
     unsigned long id;
@@ -938,7 +960,7 @@ void loop() {
     }
   }
   #endif
-  //CAN END
+
 
   currentMillis = millis();
   updatePersistentState(currentMillis);

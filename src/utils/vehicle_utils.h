@@ -103,6 +103,7 @@ struct Kombi3 {
     bool standTimeError;
     uint32_t standTime;
     uint32_t idleTime;
+    bool terminal30Lost;
 };
 
 struct Airbag1 {

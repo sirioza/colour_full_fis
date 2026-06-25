@@ -8,7 +8,7 @@ ErrorState error_state;
 
 const int16_t  IMPULSE_MAX_VALUE = 4095;
 const int16_t  IMPULSE_MIN_VALUE = 2048;
-const float  IMPULSES_KOEF = 45.0f;
+const float  IMPULSES_KOEF = 45.0f; // 4500 impulses per 100m
 
 const float MIN_KM = 0.03f;
 const float SMOOTH_KM = 2.0f;
@@ -288,8 +288,8 @@ void parseKombi1(uint8_t buf[8], Kombi1 &s, uint32_t time_now, bool measurement_
     s.tankFullscreenWarnCollapsed = false;
   }
 
-  s.oilPressureSt = ((buf[0] >> 2) & 0x01) != 0;
-  s.oilPressureDyn = ((buf[0] >> 3) & 0x01) != 0;
+  s.oilPressureSt = ((buf[0] >> 2) & 0x01) != 0; // 1 - engine is run, 0 - engine is not run
+  s.oilPressureDyn = ((buf[0] >> 3) & 0x01) != 0; // 0 - engine is run, 0 - engine is not run
   s.coolantLow = ((buf[0] >> 4) & 0x01) != 0;
   s.coolantHot = ((buf[0] >> 5) & 0x01) != 0;
 
@@ -370,6 +370,8 @@ void parseKombi3(uint8_t buf[8], Kombi3 &s) {
   uint32_t odometerOld = s.odometer;
   s.odometer = (uint32_t)buf[5] | ((uint32_t)buf[6] << 8) | ((uint32_t)(buf[7] & 0x0F) << 16);
   changes_status.odometer = diffInt32(s.odometer, odometerOld);
+
+  s.terminal30Lost = (buf[4] & 0x80) != 0;
 
   s.standTimeError = (buf[4] & 0x80) != 0;
   s.standTime = (((uint32_t)(buf[4] & 0x7F) << 8) | buf[3]) * 4;

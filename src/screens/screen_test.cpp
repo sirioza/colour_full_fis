@@ -12,4 +12,10 @@ void drawTestDataScreenLayout(const ScreenLayoutContext& ui, ChangesState& chang
   ui.gfx.drawText("Idle time", ui.titleIndent, 120 + ui.blockIndent, ILI9341_WHITE);
 
   ui.gfx.drawText("GRA", ui.titleIndent, 150 + ui.blockIndent, ILI9341_WHITE);
+
+  ui.gfx.drawText("Oil press. st.", ui.titleIndent, 180 + ui.blockIndent, ILI9341_WHITE);
+
+  ui.gfx.drawText("Oil press. dyn.", ui.titleIndent, 210 + ui.blockIndent, ILI9341_WHITE);
+
+  ui.gfx.drawText("Terminal 30", ui.titleIndent, 240 + ui.blockIndent, ILI9341_WHITE);
 }
