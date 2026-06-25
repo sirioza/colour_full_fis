@@ -18,9 +18,9 @@ namespace {
   bool tripTimeRunning = false;
 
   void resetTripAccumulators(Engine5& engine5, Break2& break2, Kombi1& kombi1) {
-    resetEngine5TripBaseline(engine5);
-    resetBreak2TripDistance(break2);
-    resetKombi1AverageBaseline(kombi1);
+    resetEngine5Trip(engine5);
+    resetBreak2Trip(break2);
+    resetKombi1Trip(kombi1);
   }
 
   bool applyTripMemory(Engine5& engine5, Break2& break2, Kombi1& kombi1, uint32_t currentMillis) {

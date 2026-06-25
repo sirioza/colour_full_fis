@@ -17,6 +17,7 @@ struct Engine2 {
     bool coolantError;                  // true = датчик температуры ОЖ невалиден, ECU работает с заглушкой.
     int16_t coolantTemp;
     float torqueNormNm;
+    int8_t graStatus = -1;
 };
 
 struct Engine5 {
@@ -128,9 +129,11 @@ struct ChangesState {
     bool timeAccel400m;
     bool powerHp;
     bool odometer;
-
+    bool graStatus;
+    
     // test data
     bool impulses;
+    bool idleTime;
 };
 
 struct ErrorState {
@@ -144,17 +147,18 @@ extern ErrorState error_state;
 void parseEngine1(uint8_t buf[8], Engine1 &s);
 void parseEngine2(uint8_t buf[8], Engine2 &s);
 void parseEngine5(uint8_t buf[8], Engine5 &s, uint32_t time_now, float distanceSinceLastKm);
-void resetEngine5TripBaseline(Engine5 &s);
+void resetEngine5Trip(Engine5 &s);
 void parseBreak1(uint8_t buf[8], Break1 &s);
 void updateAbsWarningState(Break1 &s);
 void parseBreak2(uint8_t buf[8], Break2 &s, uint32_t time_now, bool measurement_mode);
-void resetBreak2TripDistance(Break2 &s);
+void resetBreak2Trip(Break2 &s);
 void parseKombi1(uint8_t buf[8], Kombi1 &s, uint32_t time_now, bool measurement_mode);
-void resetKombi1AverageBaseline(Kombi1 &s);
+void resetKombi1Trip(Kombi1 &s);
 void parseKombi2(uint8_t buf[8], Kombi2 &s);
 void parseKombi3(uint8_t buf[8], Kombi3 &s);
 void parseAirbag1(uint8_t buf[8], Airbag1 &s, uint32_t time_now);
-bool diffInt8(uint8_t a, uint8_t b);
+bool diffInt8(int8_t a, int8_t b);
+bool diffUint8(uint8_t a, uint8_t b);
 bool diffInt16(uint16_t a, uint16_t b);
 bool diffInt32(uint32_t a, uint32_t b);
 bool diffFloat(float a, float b, uint8_t decimals);

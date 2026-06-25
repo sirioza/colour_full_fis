@@ -114,8 +114,8 @@ bool tankCanSeen = false;
 bool engine5FuelAverageUpdatedSinceLastDte = false;
 bool odometerBelow5Saved = false;
 bool odometerFullStopSaved = false;
-const int16_t TRAVEL_TIME_VALUE_X = VALUE_INDENT - 75;
-const uint8_t TRAVEL_TIME_VALUE_CLEAR_W = 115;
+const int16_t TIME_VALUE_X = VALUE_INDENT - 75;
+const uint8_t TIME_VALUE_CLEAR_W = 115;
 
 // Warnings
 const uint8_t Y_ICON = 70;
@@ -187,8 +187,8 @@ void clearDrawnWarningContent() {
 void drawTravelTimeValue() {
   char travelTimeBuf[20];
   formatTimeMs(tripMemory.travelTimeMs, travelTimeBuf, sizeof(travelTimeBuf));
-  gfx.clearTextOverBackground(TRAVEL_TIME_VALUE_X, 150 + BLOCK_INDENT - 16, TRAVEL_TIME_VALUE_CLEAR_W, 22, 0, 0);
-  gfx.drawText(travelTimeBuf, TRAVEL_TIME_VALUE_X, 150 + BLOCK_INDENT, ILI9341_WHITE);
+  gfx.clearTextOverBackground(TIME_VALUE_X, 150 + BLOCK_INDENT - 16, TIME_VALUE_CLEAR_W, 22, 0, 0);
+  gfx.drawText(travelTimeBuf, TIME_VALUE_X, 150 + BLOCK_INDENT, ILI9341_WHITE);
 }
 
 void markTripChanged() {
@@ -455,7 +455,7 @@ void mainDisplay(uint32_t currentMillis) {
       screenChanged = screenChanged || changes_status.timeAccel100 || changes_status.timeAccel400m;
       break;
     case SCREEN_TEST:
-      screenChanged = screenChanged || changes_status.impulses;
+      screenChanged = screenChanged || changes_status.impulses || changes_status.idleTime || changes_status.graStatus;
       break;      
     case SCREEN_WARNING:
       screenChanged = screenChanged || warningUi.next;
@@ -633,12 +633,45 @@ void mainDisplay(uint32_t currentMillis) {
 
       if (changes_status.impulses) {
         valueToStrInt(valueBuf, sizeof(valueBuf), break2.totalImpulses, 8);
-        gfx.drawRightAlignedText(valueBuf, VALUE_INDENT, 60 + BLOCK_INDENT, ILI9341_WHITE, WIDTH_0000_VAL);
+        gfx.drawRightAlignedText(valueBuf, VALUE_INDENT + 20, 60 + BLOCK_INDENT, ILI9341_WHITE, WIDTH_0000_VAL);
 
         valueToStrInt(valueBuf, sizeof(valueBuf), tripMemory.distanceMeters, 7);
         gfx.drawRightAlignedText(valueBuf, VALUE_INDENT, 90 + BLOCK_INDENT, ILI9341_WHITE, WIDTH_0000_VAL);
         changes_status.impulses = false;
       }
+      
+      if (changes_status.idleTime) {
+        char idleTimeBuf[20];
+        gfx.clearTextOverBackground(TIME_VALUE_X, 120 + BLOCK_INDENT - 16, TIME_VALUE_CLEAR_W, 22, 0, 0);
+        formatTimeMs(kombi3.idleTime, idleTimeBuf, sizeof(idleTimeBuf));
+        gfx.drawText(idleTimeBuf, TIME_VALUE_X, 120 + BLOCK_INDENT, ILI9341_WHITE);
+        changes_status.idleTime = false;
+      }
+
+      if (changes_status.graStatus) {
+        char graStatusBuf[16];
+        switch (engine2.graStatus) {
+          case 0:
+            strcpy(graStatusBuf, "Off");
+            break;
+          case 1:
+            strcpy(graStatusBuf, "Active");
+            break;
+          case 2:
+            strcpy(graStatusBuf, "Override");
+            break;
+          case 3:
+            strcpy(graStatusBuf, "Error");
+            break;
+          default:
+            strcpy(graStatusBuf, "Unexpected");
+            break;
+        }
+
+        gfx.drawRightAlignedText(graStatusBuf, VALUE_INDENT + 22, 150 + BLOCK_INDENT, ILI9341_WHITE, 60);
+        changes_status.graStatus = false;
+      }
+
       break;
     }
     case SCREEN_WARNING: {

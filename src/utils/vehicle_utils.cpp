@@ -66,10 +66,14 @@ void parseEngine2(uint8_t buf[8], Engine2 &s) {
   }
 
   s.coolantError = (buf[2] & 0x04) != 0;
+
   int16_t coolantTempOld = s.coolantTemp;
   s.coolantTemp = (int16_t)(((uint16_t)buf[1] * 3 + 2) / 4) - 48;
-
   changes_status.coolantTemp = diffInt16(s.coolantTemp, coolantTempOld);
+
+  int8_t graStatusOld = s.graStatus;
+  s.graStatus = (buf[2] >> 6) & 0x03;
+  changes_status.graStatus = diffInt8(s.graStatus, graStatusOld);
 }
 
 void parseEngine5(uint8_t buf[8], Engine5 &s, uint32_t time_now, float distance) {
@@ -169,7 +173,7 @@ void parseEngine5(uint8_t buf[8], Engine5 &s, uint32_t time_now, float distance)
   s.distLast = distance;
 }
 
-void resetEngine5TripBaseline(Engine5 &s) {
+void resetEngine5Trip(Engine5 &s) {
   s.fuelAverage = 0.0f;
   s.fuelUsed = 0.0f;
   s.useAbsoluteDistanceForAverage = false;
@@ -265,7 +269,7 @@ void parseBreak2(uint8_t buf[8], Break2 &s, uint32_t time_now, bool measurement_
   s.timeLast = time_now;
 }
 
-void resetBreak2TripDistance(Break2 &s) {
+void resetBreak2Trip(Break2 &s) {
   s.totalDistance = 0.0f;
 }
 
@@ -291,7 +295,7 @@ void parseKombi1(uint8_t buf[8], Kombi1 &s, uint32_t time_now, bool measurement_
 
   uint8_t tankOld = s.tank;
   s.tank = buf[2] & 0x7F;
-  changes_status.tank = diffInt8(s.tank, tankOld);
+  changes_status.tank = diffUint8(s.tank, tankOld);
 
   s.driverDoorOpen = (buf[0] & 0x01) != 0;
   s.handBrakeActive = (buf[1] & 0x03) == 0x02;
@@ -344,7 +348,7 @@ void parseKombi1(uint8_t buf[8], Kombi1 &s, uint32_t time_now, bool measurement_
   changes_status.timeAccel100 = diffFloat(s.timeAccel100, timeAccel100Old, 1);
 }
 
-void resetKombi1AverageBaseline(Kombi1 &s) {
+void resetKombi1Trip(Kombi1 &s) {
   s.avgSpeed = 0.0f;
   s.sumSpeedTime = 0.0f;
   s.sumTime = 0.0f;
@@ -369,7 +373,10 @@ void parseKombi3(uint8_t buf[8], Kombi3 &s) {
 
   s.standTimeError = (buf[4] & 0x80) != 0;
   s.standTime = (((uint32_t)(buf[4] & 0x7F) << 8) | buf[3]) * 4;
+
+  uint32_t idleTimeOld = s.odometer;
   s.idleTime = s.standTime;
+  changes_status.idleTime = diffInt32(s.idleTime, idleTimeOld);
 }
 
 void parseAirbag1(uint8_t buf[8], Airbag1 &s, uint32_t time_now) {
@@ -390,7 +397,11 @@ void parseAirbag1(uint8_t buf[8], Airbag1 &s, uint32_t time_now) {
   }
 }
 
-bool diffInt8(uint8_t a, uint8_t b) {
+bool diffUint8(uint8_t a, uint8_t b) {
+  return a != b;
+}
+
+bool diffInt8(int8_t a, int8_t b) {
   return a != b;
 }
 
