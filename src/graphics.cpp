@@ -13,16 +13,6 @@ const uint8_t HEADER_SEPARATOR_H = 2;
 const uint16_t SCREEN_CONTENT_BOTTOM = 295;
 static uint16_t backgroundBuffer[SCREEN_WIDTH * BACKGROUND_ROWS_PER_CHUNK];
 
-uint16_t Graphics::getTextWidth(const char* text, uint8_t textSize) {
-  int16_t x1, y1;
-  uint16_t w, h;
-
-  tft.setTextSize(textSize);
-  tft.getTextBounds(text, 0, 0, &x1, &y1, &w, &h);
-
-  return w;
-}
-
 void Graphics::drawSnowflake(int x, int y, float size, int depth) {
   (void)depth;
 
@@ -249,32 +239,24 @@ void Graphics::drawScreenFromStrip(uint16_t startY, uint16_t endY) {
   }
 }
 
-void Graphics::drawWarningText(const char* text, int16_t y, uint16_t color, int size) {
-  uint16_t w = getTextWidth(text);
-  int16_t x = ((tft.width() - w * size) / 2);
+void Graphics::drawWarningText(const char* text, int16_t y, uint16_t color, bool setTitle) {
+  if(setTitle){
+    setFont(4);
+  } else {
+    setFont(5);
+  }
 
-	tft.setTextSize(size);
-	tft.setCursor(x, y);
-	tft.setTextColor(color);
-	tft.print(text);
+  uint16_t w = u8g2.getUTF8Width(text);
+  int16_t x = (SCREEN_WIDTH - w) / 2;
+
+  u8g2.setForegroundColor(color);
+  u8g2.setCursor(x, y);
+  u8g2.print(text);
 }
 
 void Graphics::drawText(const char* text, int16_t x, int16_t y, TextAlignment aligment, int font, uint8_t max_width, uint16_t color)
 {
-  switch (font) {
-    case 1:
-      u8g2.setFont(u8g2_font_cupcakemetoyourleader_tr);
-      break;
-    case 2:
-      u8g2.setFont(u8g2_font_tenstamps_mu);
-      break;
-    case 3:
-      u8g2.setFont(u8g2_font_smart_patrol_nbp_tf);
-      break;
-    default: 
-      u8g2.setFont(u8g2_font_helvR12_tf);
-      break;
-  }
+  setFont(font);
 
   uint16_t w = u8g2.getUTF8Width(text);
   int16_t h = u8g2.getFontAscent() - u8g2.getFontDescent();
@@ -302,4 +284,28 @@ void Graphics::drawText(const char* text, int16_t x, int16_t y, TextAlignment al
   u8g2.setForegroundColor(color);
   u8g2.setCursor(x, y);
   u8g2.print(text);
+}
+
+void Graphics::setFont(int font)
+{
+  switch (font) {
+    case 1:
+      u8g2.setFont(u8g2_font_cupcakemetoyourleader_tr);
+      break;
+    case 2:
+      u8g2.setFont(u8g2_font_tenstamps_mu);
+      break;
+    case 3:
+      u8g2.setFont(u8g2_font_smart_patrol_nbp_tf);
+      break;
+    case 4:
+      u8g2.setFont(u8g2_font_fur25_tf);
+      break;
+    case 5:
+      u8g2.setFont(u8g2_font_helvB12_tf);
+      break;
+    default: 
+      u8g2.setFont(u8g2_font_helvR12_tf);
+      break;
+  }
 }
