@@ -302,7 +302,7 @@ void Graphics::setFont(int font)
       u8g2.setFont(u8g2_font_fur25_tf);
       break;
     case 5:
-      u8g2.setFont(u8g2_font_helvB12_tf);
+      u8g2.setFont(u8g2_font_ncenB14_tf);
       break;
     default: 
       u8g2.setFont(u8g2_font_helvR12_tf);

@@ -695,8 +695,8 @@ void mainDisplay(uint32_t currentMillis) {
 
         switch (warningUi.currentIdx) {
           case 0:
-            gfx.drawWarningText("CAN BUS", 155, ILI9341_YELLOW, true);
-            gfx.drawWarningText("FAULT", 190, ILI9341_YELLOW, true);
+            gfx.drawWarningText("CAN BUS", Y_MAIN_TEXT - 85, ILI9341_YELLOW, true);
+            gfx.drawWarningText("FAULT", Y_MAIN_TEXT - 50, ILI9341_YELLOW, true);
             gfx.drawWarningText("Data unavailable.", 235, ILI9341_YELLOW);
             break;
           case 1:
@@ -706,13 +706,15 @@ void mainDisplay(uint32_t currentMillis) {
             break;
           case 2:
             gfx.drawOilPressureWarningIcon(13, Y_ICON + 8, ILI9341_RED);
-            gfx.drawWarningText("STOP!", Y_MAIN_TEXT, ILI9341_RED, true);
-            gfx.drawWarningText("Stop engine. Check oil level.", Y_SECOND_TEXT, ILI9341_RED);
+            gfx.drawWarningText("STOP!", Y_MAIN_TEXT - 25, ILI9341_RED, true);
+            gfx.drawWarningText("Stop engine.", Y_SECOND_TEXT - 25, ILI9341_RED);
+            gfx.drawWarningText("Check oil level.", Y_SECOND_TEXT, ILI9341_RED);
             break;
           case 3:
             gfx.drawCoolantWarningIcon(50, Y_ICON + 8, ILI9341_RED);
-            gfx.drawWarningText("STOP!", Y_MAIN_TEXT, ILI9341_RED, true);
-            gfx.drawWarningText("Stop engine. Coolant hot.", Y_SECOND_TEXT, ILI9341_RED);
+            gfx.drawWarningText("STOP!", Y_MAIN_TEXT - 25, ILI9341_RED, true);
+            gfx.drawWarningText("Stop engine.", Y_SECOND_TEXT - 25, ILI9341_RED);
+            gfx.drawWarningText("Coolant hot.", Y_SECOND_TEXT, ILI9341_RED);
             break;
           case 4:
             gfx.drawCoolantWarningIcon(50, Y_ICON + 8, ILI9341_RED);
