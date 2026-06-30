@@ -1,7 +1,8 @@
 #include <Arduino.h>
+#include <SPI.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_ST7789.h>
-#include <Fonts/FreeSans9pt7b.h>
+#include <U8g2_for_Adafruit_GFX.h>
 #include <SPI.h>
 #include <cstdint>
 #include "config.h"
@@ -37,6 +38,7 @@ enum Screen : int8_t {
 
 Adafruit_ST7789 tft(TFT_CS_PIN, TFT_DC_PIN, TFT_RST_PIN);
 Graphics gfx(tft);
+U8G2_FOR_ADAFRUIT_GFX u8g2;
 
 struct ScreenState {
   int8_t position = FIRST_SCREEN ;
@@ -97,11 +99,6 @@ const uint16_t NON_CRITICAL_FULLSCREEN_WARNING_MS = 5000;
 uint32_t lastCanMessageTime = 0;
 uint32_t lastBreak1MessageTime = 0;
 bool canBusFault = false;
-
-const uint8_t TITLE_INDENT = 15;
-const uint8_t MEASUREMENT_INDENT = 190;
-const uint8_t VALUE_INDENT = 183;
-const uint8_t BLOCK_INDENT = 15;
 
 const uint8_t DEBOUNCE_TIME = 50;
 static ButtonState buttons[] = {{ BTN_NEXT, +1, false, 0 }, { BTN_PREV, -1, false, 0 }};
@@ -188,7 +185,7 @@ void drawTravelTimeValue() {
   char travelTimeBuf[20];
   formatTimeMs(tripMemory.travelTimeMs, travelTimeBuf, sizeof(travelTimeBuf));
   gfx.clearTextOverBackground(TIME_VALUE_X, 150 + BLOCK_INDENT - 16, TIME_VALUE_CLEAR_W, 22, 0, 0);
-  gfx.drawText(travelTimeBuf, TIME_VALUE_X, 150 + BLOCK_INDENT, ILI9341_WHITE);
+  gfx.drawText(travelTimeBuf, TIME_VALUE_X, 150 + BLOCK_INDENT);
 }
 
 void markTripChanged() {
@@ -482,16 +479,16 @@ void mainDisplay(uint32_t currentMillis) {
 
       if (changes_status.fuelRate) {
         valueToStr(valueBuf, sizeof(valueBuf), engine5.fuelRate);
-        gfx.drawRightAlignedText(valueBuf, VALUE_INDENT, 60 + BLOCK_INDENT, ILI9341_WHITE, WIDTH_000_0_VAL);
+        gfx.drawText(valueBuf, VALUE_INDENT, 60 + BLOCK_INDENT, RIGHT, 1, WIDTH_000_0_VAL);
         changes_status.fuelRate = false;
       }
 
       if (changes_status.fuelAverage) {
         if(tripMemory.averageFuel != 0.0f) {
           valueToStr(valueBuf, sizeof(valueBuf), tripMemory.averageFuel, 1);
-          gfx.drawRightAlignedText(valueBuf, VALUE_INDENT, 90 + BLOCK_INDENT, ILI9341_WHITE, WIDTH_000_0_VAL);
+          gfx.drawText(valueBuf, VALUE_INDENT, 90 + BLOCK_INDENT, RIGHT, 1, WIDTH_000_0_VAL);
         } else {
-          gfx.drawRightAlignedText("--.-", VALUE_INDENT, 90 + BLOCK_INDENT, ILI9341_WHITE, WIDTH_000_0_VAL);
+          gfx.drawText("--.-", VALUE_INDENT, 90 + BLOCK_INDENT, RIGHT, 1, WIDTH_000_0_VAL);
         }
         
         changes_status.fuelAverage = false;
@@ -503,10 +500,10 @@ void mainDisplay(uint32_t currentMillis) {
       if (!displayCache.dteDrawn || dteValid != displayCache.dteOldValid || (dteValid && diffInt16(dteDisplayCurrent, displayCache.dteDisplayOld))) {
         if (dteValid) {
           valueToStrInt(valueBuf, sizeof(valueBuf), dteDisplayCurrent);
-          gfx.drawRightAlignedText(valueBuf, VALUE_INDENT, 120 + BLOCK_INDENT, ILI9341_WHITE, WIDTH_0000_VAL);
+          gfx.drawText(valueBuf, VALUE_INDENT, 120 + BLOCK_INDENT, RIGHT, 1, WIDTH_0000_VAL);
           displayCache.dteDisplayOld = dteDisplayCurrent;
         } else {
-          gfx.drawRightAlignedText("---", VALUE_INDENT, 120 + BLOCK_INDENT, ILI9341_WHITE, WIDTH_0000_VAL);
+          gfx.drawText("---", VALUE_INDENT, 120 + BLOCK_INDENT, RIGHT, 1, WIDTH_0000_VAL);
         }
         displayCache.dteOldValid = dteValid;
         displayCache.dteDrawn = true;
@@ -514,13 +511,13 @@ void mainDisplay(uint32_t currentMillis) {
 
       if (changes_status.fuelUsed) {
         valueToStr(valueBuf, sizeof(valueBuf), tripMemory.fuelUsed, 2);
-        gfx.drawRightAlignedText(valueBuf, VALUE_INDENT, 150 + BLOCK_INDENT, ILI9341_WHITE, WIDTH_000_0_VAL);
+        gfx.drawText(valueBuf, VALUE_INDENT, 150 + BLOCK_INDENT, RIGHT, 1, WIDTH_000_0_VAL);
         changes_status.fuelUsed = false;
       }
 
       if (changes_status.tank) {
         valueToStrInt(valueBuf, sizeof(valueBuf), kombi1.tank);
-        gfx.drawRightAlignedText(valueBuf, VALUE_INDENT, 180 + BLOCK_INDENT, kombi1.tankEmpty ? ILI9341_RED : ILI9341_WHITE, WIDTH_0000_VAL);
+        gfx.drawText(valueBuf, VALUE_INDENT, 180 + BLOCK_INDENT, RIGHT, 1, WIDTH_0000_VAL, kombi1.tankEmpty ? ILI9341_RED : ILI9341_WHITE);
         changes_status.tank = false;
       }
       break;
@@ -534,31 +531,31 @@ void mainDisplay(uint32_t currentMillis) {
 
       if (changes_status.rpm) {
         valueToStrInt(valueBuf, sizeof(valueBuf), engine1.rpm);
-        gfx.drawRightAlignedText(valueBuf, VALUE_INDENT, 60 + BLOCK_INDENT, ILI9341_WHITE, WIDTH_0000_VAL);
+        gfx.drawText(valueBuf, VALUE_INDENT, 60 + BLOCK_INDENT, RIGHT, 1, WIDTH_0000_VAL);
         changes_status.rpm = false;
       }
 
       if (changes_status.torque) {
         valueToStr(valueBuf, sizeof(valueBuf), engine1.torque, 0);
-        gfx.drawRightAlignedText(valueBuf, VALUE_INDENT, 90 + BLOCK_INDENT, ILI9341_WHITE, WIDTH_0000_VAL);
+        gfx.drawText(valueBuf, VALUE_INDENT, 90 + BLOCK_INDENT, RIGHT, 1, WIDTH_0000_VAL);
         changes_status.torque = false;
       }
       
       if (changes_status.powerHp) {
         valueToStr(valueBuf, sizeof(valueBuf), engine1.powerHp, 0);
-        gfx.drawRightAlignedText(valueBuf, VALUE_INDENT, 120 + BLOCK_INDENT, ILI9341_WHITE, WIDTH_0000_VAL);
+        gfx.drawText(valueBuf, VALUE_INDENT, 120 + BLOCK_INDENT, RIGHT, 1, WIDTH_0000_VAL);
         changes_status.powerHp = false;
       }
 
       if (changes_status.coolantTemp) {
         valueToStrInt(valueBuf, sizeof(valueBuf), engine2.coolantTemp);
-        gfx.drawRightAlignedText(valueBuf, VALUE_INDENT, 150 + BLOCK_INDENT, ILI9341_WHITE, WIDTH_0000_VAL);
+        gfx.drawText(valueBuf, VALUE_INDENT, 150 + BLOCK_INDENT, RIGHT, 1, WIDTH_0000_VAL);
         changes_status.coolantTemp = false;
       }
 
       if (changes_status.outsideTemp) {
         valueToStr(valueBuf, sizeof(valueBuf), kombi2.outsideTemp);
-        gfx.drawRightAlignedText(valueBuf, VALUE_INDENT, 180 + BLOCK_INDENT, ILI9341_WHITE, WIDTH_000_0_VAL);
+        gfx.drawText(valueBuf, VALUE_INDENT, 180 + BLOCK_INDENT, RIGHT, 1, WIDTH_000_0_VAL);
         changes_status.outsideTemp = false;
       }
       break;
@@ -572,20 +569,20 @@ void mainDisplay(uint32_t currentMillis) {
 
       if (changes_status.speed) {
         valueToStr(valueBuf, sizeof(valueBuf), kombi1.speed, 0);
-        gfx.drawRightAlignedText(valueBuf, VALUE_INDENT, 60 + BLOCK_INDENT, ILI9341_WHITE, WIDTH_0000_VAL);
+        gfx.drawText(valueBuf, VALUE_INDENT, 60 + BLOCK_INDENT, RIGHT, 1, WIDTH_0000_VAL);
         changes_status.speed = false;
       }
 
       if (changes_status.avgSpeed) {
         valueToStr(valueBuf, sizeof(valueBuf), tripMemory.averageSpeed, 0);
-        gfx.drawRightAlignedText(valueBuf, VALUE_INDENT, 90 + BLOCK_INDENT, ILI9341_WHITE, WIDTH_0000_VAL);
+        gfx.drawText(valueBuf, VALUE_INDENT, 90 + BLOCK_INDENT, RIGHT, 1, WIDTH_0000_VAL);
         changes_status.avgSpeed = false;
       }
 
       int16_t distance = tripMemory.distanceMeters / 1000.0f;
       if (changes_status.distance || diffInt16(distance, displayCache.distancePrevious) || displayCache.distancePrevious < 0) {
         valueToStrInt(valueBuf, sizeof(valueBuf), distance);
-        gfx.drawRightAlignedText(valueBuf, VALUE_INDENT, 120 + BLOCK_INDENT, ILI9341_WHITE, WIDTH_0000_VAL);
+        gfx.drawText(valueBuf, VALUE_INDENT, 120 + BLOCK_INDENT, RIGHT, 1, WIDTH_0000_VAL);
         displayCache.distancePrevious = distance;
         changes_status.distance = false;
       }
@@ -599,7 +596,7 @@ void mainDisplay(uint32_t currentMillis) {
 
       if (changes_status.odometer) {
         valueToStrInt(valueBuf, sizeof(valueBuf), kombi3.odometer, 6);
-        gfx.drawRightAlignedText(valueBuf, VALUE_INDENT, 180 + BLOCK_INDENT, ILI9341_WHITE, WIDTH_000000_VAL);
+        gfx.drawText(valueBuf, VALUE_INDENT, 180 + BLOCK_INDENT, RIGHT, 1, WIDTH_000000_VAL);
         changes_status.odometer = false;
       }
       break;
@@ -613,13 +610,13 @@ void mainDisplay(uint32_t currentMillis) {
 
       if (changes_status.timeAccel100) {
         valueToStr(valueBuf, sizeof(valueBuf), kombi1.timeAccel100);
-        gfx.drawRightAlignedText(valueBuf, VALUE_INDENT, 60 + BLOCK_INDENT, ILI9341_WHITE, WIDTH_000_0_VAL);
+        gfx.drawText(valueBuf, VALUE_INDENT, 60 + BLOCK_INDENT, RIGHT, 1, WIDTH_000_0_VAL);
         changes_status.timeAccel100 = false;
       }
 
       if (changes_status.timeAccel400m) {
         valueToStr(valueBuf, sizeof(valueBuf), break2.timeAccel400m);
-        gfx.drawRightAlignedText(valueBuf, VALUE_INDENT, 90 + BLOCK_INDENT, ILI9341_WHITE, WIDTH_000_0_VAL);
+        gfx.drawText(valueBuf, VALUE_INDENT, 90 + BLOCK_INDENT, RIGHT, 1, WIDTH_000_0_VAL);
         changes_status.timeAccel400m = false;
       }
       break;
@@ -633,10 +630,10 @@ void mainDisplay(uint32_t currentMillis) {
 
       if (changes_status.impulses) {
         valueToStrInt(valueBuf, sizeof(valueBuf), break2.totalImpulses, 8);
-        gfx.drawRightAlignedText(valueBuf, VALUE_INDENT + 20, 60 + BLOCK_INDENT, ILI9341_WHITE, WIDTH_0000_VAL);
+        gfx.drawText(valueBuf, VALUE_INDENT + 20, 60 + BLOCK_INDENT, RIGHT, 1, WIDTH_0000_VAL);
 
         valueToStrInt(valueBuf, sizeof(valueBuf), tripMemory.distanceMeters, 7);
-        gfx.drawRightAlignedText(valueBuf, VALUE_INDENT, 90 + BLOCK_INDENT, ILI9341_WHITE, WIDTH_0000_VAL);
+        gfx.drawText(valueBuf, VALUE_INDENT, 90 + BLOCK_INDENT, RIGHT, 1, WIDTH_0000_VAL);
         changes_status.impulses = false;
       }
       
@@ -644,7 +641,7 @@ void mainDisplay(uint32_t currentMillis) {
         char idleTimeBuf[20];
         gfx.clearTextOverBackground(TIME_VALUE_X, 120 + BLOCK_INDENT - 16, TIME_VALUE_CLEAR_W, 22, 0, 0);
         formatTimeMs(kombi3.idleTime, idleTimeBuf, sizeof(idleTimeBuf));
-        gfx.drawText(idleTimeBuf, TIME_VALUE_X, 120 + BLOCK_INDENT, ILI9341_WHITE);
+        gfx.drawText(idleTimeBuf, TIME_VALUE_X, 120 + BLOCK_INDENT);
         changes_status.idleTime = false;
       }
 
@@ -668,18 +665,18 @@ void mainDisplay(uint32_t currentMillis) {
             break;
         }
 
-        gfx.drawRightAlignedText(graStatusBuf, VALUE_INDENT + 22, 150 + BLOCK_INDENT, ILI9341_WHITE, 60);
+        gfx.drawText(graStatusBuf, VALUE_INDENT + 22, 150 + BLOCK_INDENT, RIGHT, 1, 60);
         changes_status.graStatus = false;
       }
 
       valueToStrInt(valueBuf, sizeof(valueBuf), kombi1.oilPressureSt);
-      gfx.drawRightAlignedText(valueBuf, VALUE_INDENT + 20, 180 + BLOCK_INDENT, ILI9341_WHITE, WIDTH_0000_VAL);
+      gfx.drawText(valueBuf, VALUE_INDENT + 20, 180 + BLOCK_INDENT, RIGHT, 1, WIDTH_0000_VAL);
 
       valueToStrInt(valueBuf, sizeof(valueBuf), kombi1.oilPressureDyn);
-      gfx.drawRightAlignedText(valueBuf, VALUE_INDENT + 22, 210 + BLOCK_INDENT, ILI9341_WHITE, WIDTH_0000_VAL);
+      gfx.drawText(valueBuf, VALUE_INDENT + 22, 210 + BLOCK_INDENT, RIGHT, 1, WIDTH_0000_VAL);
 
       strncpy(valueBuf, kombi3.terminal30Lost ? "Lost" : "Ok", sizeof(valueBuf));
-      gfx.drawRightAlignedText(valueBuf, VALUE_INDENT + 22, 240 + BLOCK_INDENT, ILI9341_WHITE, WIDTH_0000_VAL);
+      gfx.drawText(valueBuf, VALUE_INDENT + 22, 240 + BLOCK_INDENT, RIGHT, 1, WIDTH_0000_VAL);
 
       break;
     }
@@ -768,7 +765,7 @@ void mainDisplay(uint32_t currentMillis) {
       if (screenState.redraw) {
         gfx.drawScreenFromStrip();
         screenState.headerSeparatorDrawn = false;
-        gfx.drawText("NOT FOUND SCREEN", 27, 30, ILI9341_WHITE);
+        gfx.drawText("NOT FOUND SCREEN", 0, 30, CENTER);
         gfx.drawHeaderSeparator();
         screenState.headerSeparatorDrawn = true;
         screenState.redraw = false;
@@ -886,10 +883,26 @@ void setup() {
   tft.init(SCREEN_WIDTH, SCREEN_HEIGHT);
   tft.setSPISpeed(TFT_SPI_SPEED);
   tft.setRotation(TFT_ROTATION);
-  tft.setFont(&FreeSans9pt7b);
+  
+  u8g2.begin(tft);
+  u8g2.setFontMode(1);
+  
+  gfx.drawScreenFromStrip();
+  int x = 30;
+  const int spacing = 12;
 
-	gfx.drawScreenFromStrip();
-	gfx.drawText("WELCOME", 30, 170, ILI9341_WHITE, 0, 2);
+  for (const char* p = "WELCOME"; *p; p++)
+  {
+      char s[2] = {*p, 0};
+
+      u8g2.setCursor(x, 170);
+      u8g2.setForegroundColor(ILI9341_WHITE);
+      u8g2.setFont(u8g2_font_tenstamps_mu);
+      u8g2.print(s);
+
+      x += u8g2.getUTF8Width(s) + spacing;
+  }
+	//gfx.drawSmoothText("WELCOME", 30, 170, ILI9341_WHITE, 0, 2);
 
   //CAN
 	#ifndef MOCK_CAN

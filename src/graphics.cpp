@@ -2,6 +2,9 @@
 #include <math.h>
 #include "icons.h"
 #include "background.h"
+#include <U8g2_for_Adafruit_GFX.h>
+
+extern U8G2_FOR_ADAFRUIT_GFX u8g2;
 
 const uint8_t BACKGROUND_ROWS_PER_CHUNK = 10;
 const uint8_t WARNING_RUN_SERVICE_CHECK_INTERVAL = 16;
@@ -246,39 +249,6 @@ void Graphics::drawScreenFromStrip(uint16_t startY, uint16_t endY) {
   }
 }
 
-void Graphics::drawText(const char* text, int16_t x, int16_t y, uint16_t color, uint8_t max_width, int size) {
-	tft.setTextSize(size);
-		
-	if(max_width != 0){
-		int16_t x1, y1;
-		uint16_t w, h;
-		tft.getTextBounds(text, x, y, &x1, &y1, &w, &h);
-		int16_t leftPadding = (max_width > w) ? (max_width - w + 4) : 4;
-		clearTextOverBackground(x1, y1, w, h, leftPadding);
-	}
-
-	tft.setCursor(x, y);
-	tft.setTextColor(color);
-	tft.print(text);
-}
-
-void Graphics::drawRightAlignedText(const char* text, int16_t rightX, int16_t y, uint16_t color, uint8_t max_width, int size) {
-	tft.setTextSize(size);
-
-	int16_t x1, y1;
-	uint16_t w, h;
-	tft.getTextBounds(text, 0, y, &x1, &y1, &w, &h);
-
-	int16_t x = rightX - w;
-	if(max_width != 0){
-		clearTextOverBackground(rightX - max_width - 4, y1, max_width + 8, h, 0, 0);
-	}
-
-	tft.setCursor(x, y);
-	tft.setTextColor(color);
-	tft.print(text);
-}
-
 void Graphics::drawWarningText(const char* text, int16_t y, uint16_t color, int size) {
   uint16_t w = getTextWidth(text);
   int16_t x = ((tft.width() - w * size) / 2);
@@ -287,4 +257,49 @@ void Graphics::drawWarningText(const char* text, int16_t y, uint16_t color, int 
 	tft.setCursor(x, y);
 	tft.setTextColor(color);
 	tft.print(text);
+}
+
+void Graphics::drawText(const char* text, int16_t x, int16_t y, TextAlignment aligment, int font, uint8_t max_width, uint16_t color)
+{
+  switch (font) {
+    case 1:
+      u8g2.setFont(u8g2_font_cupcakemetoyourleader_tr);
+      break;
+    case 2:
+      u8g2.setFont(u8g2_font_tenstamps_mu);
+      break;
+    case 3:
+      u8g2.setFont(u8g2_font_smart_patrol_nbp_tf);
+      break;
+    default: 
+      u8g2.setFont(u8g2_font_helvR12_tf);
+      break;
+  }
+
+  uint16_t w = u8g2.getUTF8Width(text);
+  int16_t h = u8g2.getFontAscent() - u8g2.getFontDescent();
+
+  switch (aligment) {
+    case CENTER:
+      x = (SCREEN_WIDTH - w) / 2;
+      if (max_width) {
+        clearTextOverBackground(x, y - u8g2.getFontAscent(), max_width, h, 0, 0);
+      }
+      break;
+    case RIGHT:
+      if (max_width) {
+        clearTextOverBackground(x - max_width - 4, y - u8g2.getFontAscent(), max_width + 8, h, 0, 0);
+      }
+      x = x - w;
+      break;
+    default:
+      if (max_width) {
+        clearTextOverBackground(x, y - u8g2.getFontAscent(), max_width, h, 0, 0);
+      }
+      break;
+  }
+
+  u8g2.setForegroundColor(color);
+  u8g2.setCursor(x, y);
+  u8g2.print(text);
 }

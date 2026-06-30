@@ -1,9 +1,18 @@
 #pragma once
 #include <Arduino.h>
 #include <Adafruit_ST7789.h>
+#include <U8g2_for_Adafruit_GFX.h>
 #include "config.h"
 
+extern U8G2_FOR_ADAFRUIT_GFX u8g2;
+
 struct IconRun;
+
+enum TextAlignment : int8_t {
+  LEFT = 1,
+  RIGHT,
+  CENTER
+};
 
 class Graphics {
   public:
@@ -28,10 +37,16 @@ class Graphics {
     void drawHeaderSeparator();
     void drawScreenBackgroundKeepingHeaderSeparator(bool& headerSeparatorDrawn);
     void drawScreenFromStrip(uint16_t startY = 0, uint16_t endY = 320);
-    void drawText(const char* text, int16_t x, int16_t y, uint16_t color, uint8_t max_width = 0, int size = 1);
-    void drawRightAlignedText(const char* text, int16_t rightX, int16_t y, uint16_t color, uint8_t max_width = 0, int size = 1);
+    void drawText(
+      const char* text,
+      int16_t x,
+      int16_t y,
+      TextAlignment aligment = LEFT,
+      int font = 1,
+      uint8_t max_width = 0,
+      uint16_t color = ILI9341_WHITE);
 
-  private:
+    private:
     Adafruit_ST7789& tft;
     void drawWarningIconRuns(
       int16_t x,

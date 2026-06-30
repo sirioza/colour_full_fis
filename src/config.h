@@ -1,3 +1,5 @@
+#pragma once
+
 // Waveshare ESP32-S3-Touch-LCD-2.8
 #define TFT_MOSI_PIN  45
 #define TFT_SCLK_PIN  40
@@ -59,3 +61,9 @@
 #define BIT_ABS   (1 << 1)
 #define BIT_AIR   (1 << 2)
 #define BIT_ICE   (1 << 3)
+
+// INDENTS
+constexpr uint8_t TITLE_INDENT = 15;
+constexpr uint8_t MEASUREMENT_INDENT = 190;
+constexpr uint8_t VALUE_INDENT = 183;
+constexpr uint8_t BLOCK_INDENT = 15;

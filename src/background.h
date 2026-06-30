@@ -1,5 +1,4 @@
 #include <Arduino.h>
-#include "config.h"
 
 // 240x320px
 const uint16_t background[SCREEN_WIDTH * STRIP_HEIGHT] PROGMEM = {
