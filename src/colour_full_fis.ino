@@ -31,7 +31,7 @@ enum Screen : int8_t {
   SCREEN_ENGINE,
   SCREEN_SPEED,
   SCREEN_DYNAMICS,
-  FIRST_SCREEN = SCREEN_TEST,
+  FIRST_SCREEN = SCREEN_SPEED,
   LAST_SCREEN = SCREEN_DYNAMICS,
   SCREEN_WARNING = 100
 };
@@ -46,6 +46,9 @@ struct ScreenState {
   bool redraw = true;
   uint32_t lastRefreshMs = 0;
   bool headerSeparatorDrawn = false;
+  
+  int8_t kmhPosition;
+  int8_t kmhMeasurementPosition;
 };
 
 struct DisplayCache {
@@ -179,13 +182,6 @@ void clearDrawnWarningContent() {
 
   gfx.drawScreenFromStrip(48, 295);
   warningUi.drawnIdx = -1;
-}
-
-void drawTravelTimeValue() {
-  char travelTimeBuf[20];
-  formatTimeMs(tripMemory.travelTimeMs, travelTimeBuf, sizeof(travelTimeBuf));
-  gfx.clearTextOverBackground(TIME_VALUE_X, 150 + BLOCK_INDENT - 16, TIME_VALUE_CLEAR_W, 22, 0, 0);
-  gfx.drawText(travelTimeBuf, TIME_VALUE_X, 150 + BLOCK_INDENT);
 }
 
 void markTripChanged() {
@@ -566,39 +562,50 @@ void mainDisplay(uint32_t currentMillis) {
         drawSpeedScreenLayout(screenLayout, changes_status, displayCache.travelTimeDrawn);
         screenState.redraw = false;
       }
-
+     
       if (changes_status.speed) {
         valueToStr(valueBuf, sizeof(valueBuf), kombi1.speed, 0);
-        gfx.drawText(valueBuf, VALUE_INDENT, 60 + BLOCK_INDENT, RIGHT, 1, WIDTH_0000_VAL);
+        gfx.drawText(valueBuf, 0, 230, CENTER, 6, 171);
         changes_status.speed = false;
       }
 
       if (changes_status.avgSpeed) {
-        valueToStr(valueBuf, sizeof(valueBuf), tripMemory.averageSpeed, 0);
-        gfx.drawText(valueBuf, VALUE_INDENT, 90 + BLOCK_INDENT, RIGHT, 1, WIDTH_0000_VAL);
+        valueToStr(valueBuf, sizeof(valueBuf), tripMemory.averageSpeed, 0);       
+        uint8_t w1 = gfx.drawText("Ø", TITLE_INDENT, 60 + BLOCK_INDENT, LEFT, 0);
+        uint8_t kmhPosition = TITLE_INDENT + w1 + 5;
+        uint8_t w2 = gfx.drawText(valueBuf, kmhPosition, 60 + BLOCK_INDENT, LEFT, 1, kmhPosition);
+        uint8_t kmhMeasurementPosition = TITLE_INDENT + w1 + w2 + 10;
+        gfx.drawText("km/h", kmhMeasurementPosition, 60 + BLOCK_INDENT, LEFT, 1, kmhMeasurementPosition);
+
+        screenState.kmhPosition = kmhPosition;
+        screenState.kmhMeasurementPosition = kmhMeasurementPosition;
         changes_status.avgSpeed = false;
       }
 
-      int16_t distance = tripMemory.distanceMeters / 1000.0f;
+      /*int16_t distance = tripMemory.distanceMeters / 1000.0f;
       if (changes_status.distance || diffInt16(distance, displayCache.distancePrevious) || displayCache.distancePrevious < 0) {
         valueToStrInt(valueBuf, sizeof(valueBuf), distance);
         gfx.drawText(valueBuf, VALUE_INDENT, 120 + BLOCK_INDENT, RIGHT, 1, WIDTH_0000_VAL);
         displayCache.distancePrevious = distance;
         changes_status.distance = false;
-      }
+      }*/
       
       uint32_t travelTimeMinute = tripMemory.travelTimeMs / 60000UL;
       if (!displayCache.travelTimeDrawn || travelTimeMinute != displayCache.lastTravelTimeMinute) {
         displayCache.lastTravelTimeMinute = travelTimeMinute;
-        drawTravelTimeValue();
+
+        char travelTimeBuf[20];
+        formatTimeMs(tripMemory.travelTimeMs, travelTimeBuf, sizeof(travelTimeBuf));
+        gfx.clearTextOverBackground(TIME_VALUE_X, 60 + BLOCK_INDENT - 16, TIME_VALUE_CLEAR_W, 22, 0, 0);
+        gfx.drawText(travelTimeBuf, TIME_VALUE_X, 60 + BLOCK_INDENT);
         displayCache.travelTimeDrawn = true;
       }
 
-      if (changes_status.odometer) {
+      /*if (changes_status.odometer) {
         valueToStrInt(valueBuf, sizeof(valueBuf), kombi3.odometer, 6);
         gfx.drawText(valueBuf, VALUE_INDENT, 180 + BLOCK_INDENT, RIGHT, 1, WIDTH_000000_VAL);
         changes_status.odometer = false;
-      }
+      }*/
       break;
     }
     case SCREEN_DYNAMICS: {
@@ -871,7 +878,9 @@ void updateCanTimeoutWarnings(uint32_t time_now) {
 
 void setup() {
   Serial.begin(115200);
-
+    while (!Serial) {
+        delay(10);
+    }
   uint32_t currentMillis = millis();
   pinMode(TFT_BL_PIN, OUTPUT);
   digitalWrite(TFT_BL_PIN, HIGH);
@@ -887,8 +896,7 @@ void setup() {
   tft.setRotation(TFT_ROTATION);
   
   u8g2.begin(tft);
-  u8g2.setFontMode(1);
-  
+
   gfx.drawScreenFromStrip();
   int x = 30;
   const int spacing = 12;
@@ -900,11 +908,12 @@ void setup() {
       u8g2.setCursor(x, 170);
       u8g2.setForegroundColor(ILI9341_WHITE);
       u8g2.setFont(u8g2_font_tenstamps_mu);
+      u8g2.setFontMode(1);
       u8g2.print(s);
 
       x += u8g2.getUTF8Width(s) + spacing;
   }
-	//gfx.drawSmoothText("WELCOME", 30, 170, ILI9341_WHITE, 0, 2);
+	//gfx.drawText("WELCOME", 30, 170, ILI9341_WHITE, 0, 2);
 
   //CAN
 	#ifndef MOCK_CAN

@@ -247,7 +247,7 @@ void Graphics::drawWarningText(const char* text, int16_t y, uint16_t color, bool
   }
 }
 
-void Graphics::drawText(const char* text, int16_t x, int16_t y, TextAlignment aligment, int font, uint8_t clear_width, uint16_t color)
+uint8_t Graphics::drawText(const char* text, int16_t x, int16_t y, TextAlignment aligment, int font, uint8_t clear_width, uint16_t color)
 {
   setFont(font);
 
@@ -258,7 +258,7 @@ void Graphics::drawText(const char* text, int16_t x, int16_t y, TextAlignment al
     case CENTER:
       x = (SCREEN_WIDTH - w) / 2;
       if (clear_width) {
-        clearTextOverBackground(x, y - u8g2.getFontAscent(), clear_width, h, 0, 0);
+        clearTextOverBackground((SCREEN_WIDTH - clear_width) / 2, y - u8g2.getFontAscent(), clear_width, h, 0, 0);
       }
       break;
     case RIGHT:
@@ -278,6 +278,8 @@ void Graphics::drawText(const char* text, int16_t x, int16_t y, TextAlignment al
   u8g2.setForegroundColor(color);
   u8g2.setCursor(x, y);
   u8g2.print(text);
+
+  return w;
 }
 
 void Graphics::setFont(int font)
@@ -298,8 +300,13 @@ void Graphics::setFont(int font)
     case 5:
       u8g2.setFont(u8g2_font_ncenB14_tf);
       break;
+    case 6:
+      u8g2.setFont(u8g2_font_logisoso92_tn);
+      break;
     default: 
       u8g2.setFont(u8g2_font_helvR12_tf);
       break;
   }
-}
+
+  u8g2.setFontMode(1);
+} 

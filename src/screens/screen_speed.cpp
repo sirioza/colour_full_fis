@@ -4,7 +4,7 @@
 void drawSpeedScreenLayout(const ScreenLayoutContext& ui, ChangesState& changes, bool& travelTimeDrawn) {
   ui.gfx.drawText("SPEED", 0, 30, CENTER);
 
-  ui.gfx.drawText("Speed", ui.titleIndent, 60 + ui.blockIndent);
+  /*ui.gfx.drawText("Speed", ui.titleIndent, 60 + ui.blockIndent);
   ui.gfx.drawText("km/h", ui.measurementIndent, 60 + ui.blockIndent);
   changes.speed = true;
 
@@ -21,5 +21,5 @@ void drawSpeedScreenLayout(const ScreenLayoutContext& ui, ChangesState& changes,
 
   ui.gfx.drawText("Odometer", ui.titleIndent, 180 + ui.blockIndent);
   ui.gfx.drawText("km", ui.measurementIndent, 180 + ui.blockIndent);
-  changes.odometer = true;
+  changes.odometer = true;*/
 }

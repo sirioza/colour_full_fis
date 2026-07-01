@@ -36,7 +36,7 @@ class Graphics {
     void drawHeaderSeparator();
     void drawScreenBackgroundKeepingHeaderSeparator(bool& headerSeparatorDrawn);
     void drawScreenFromStrip(uint16_t startY = 0, uint16_t endY = 320);
-    void drawText(const char* text, int16_t x, int16_t y, TextAlignment aligment = LEFT, int font = 1, uint8_t clear_width = 0, uint16_t color = ILI9341_WHITE);
+    uint8_t drawText(const char* text, int16_t x, int16_t y, TextAlignment aligment = LEFT, int font = 1, uint8_t clear_width = 0, uint16_t color = ILI9341_WHITE);
     void setFont(int font);
 
     private:

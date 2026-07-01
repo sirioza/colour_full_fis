@@ -304,7 +304,7 @@ void parseKombi1(uint8_t buf[8], Kombi1 &s, uint32_t time_now, bool measurement_
   float speedOld = s.speed;
   uint16_t raw_speed_value = (buf[4] << 7) | ((buf[3] >> 1) & 0x7F);
   s.speed = (float)raw_speed_value * 0.01f;
-  changes_status.speed = diffFloat(s.speed, speedOld, 1);
+  changes_status.speed = diffFloat(s.speed, speedOld, 0);
 
   // count avg speed
   if (s.timeLast != 0) {
