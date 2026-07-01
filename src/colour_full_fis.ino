@@ -697,7 +697,7 @@ void mainDisplay(uint32_t currentMillis) {
           case 0:
             gfx.drawWarningText("CAN BUS", Y_MAIN_TEXT - 85, ILI9341_YELLOW, true);
             gfx.drawWarningText("FAULT", Y_MAIN_TEXT - 50, ILI9341_YELLOW, true);
-            gfx.drawWarningText("Data unavailable.", 235, ILI9341_YELLOW);
+            gfx.drawWarningText("Data unavailable.", 235);
             break;
           case 1:
             gfx.drawBrakeWarningIcon(50, Y_ICON + 8, ILI9341_RED);
@@ -732,29 +732,29 @@ void mainDisplay(uint32_t currentMillis) {
             gfx.drawWarningText("Driver door open.", Y_SECOND_TEXT, ILI9341_RED);
             break;
           case 7:
-            gfx.drawFuelWarningIcon(50, Y_ICON - 13, ILI9341_YELLOW);
+            gfx.drawFuelWarningIcon(50, Y_ICON - 13);
             gfx.drawWarningText("WARNING!", Y_MAIN_TEXT, ILI9341_YELLOW, true);
-            gfx.drawWarningText("Please refuel", Y_SECOND_TEXT, ILI9341_YELLOW);
+            gfx.drawWarningText("Please refuel", Y_SECOND_TEXT);
             break;
           case 8:
-            gfx.drawAirbagWarningIcon(50, Y_ICON + 8, ILI9341_YELLOW);
+            gfx.drawAirbagWarningIcon(50, Y_ICON + 8);
             gfx.drawWarningText("WARNING!", Y_MAIN_TEXT, ILI9341_YELLOW, true);
-            gfx.drawWarningText("Airbag fault.", Y_SECOND_TEXT, ILI9341_YELLOW);
+            gfx.drawWarningText("Airbag fault.", Y_SECOND_TEXT);
             break;
           case 9:
-            gfx.drawAbsWarningIcon(50, Y_ICON + 8, ILI9341_YELLOW);
+            gfx.drawAbsWarningIcon(50, Y_ICON + 8);
             gfx.drawWarningText("WARNING!", Y_MAIN_TEXT, ILI9341_YELLOW, true);
-            gfx.drawWarningText(break1.absMessageTimeout ? "ABS CAN timeout." : "ABS fault.", Y_SECOND_TEXT, ILI9341_YELLOW);
+            gfx.drawWarningText(break1.absMessageTimeout ? "ABS CAN timeout." : "ABS fault.", Y_SECOND_TEXT);
             break;
           case 10:
-            gfx.drawCoolantWarningIcon(50, Y_ICON + 8, ILI9341_YELLOW);
+            gfx.drawCoolantWarningIcon(50, Y_ICON + 8);
             gfx.drawWarningText("WARNING!", Y_MAIN_TEXT, ILI9341_YELLOW, true);
-            gfx.drawWarningText("Coolant sensor fault.", Y_SECOND_TEXT, ILI9341_YELLOW);
+            gfx.drawWarningText("Coolant sensor fault.", Y_SECOND_TEXT);
             break;
           case 11:
-            gfx.drawWashWarningIcon(50, Y_ICON - 2, ILI9341_YELLOW);
+            gfx.drawWashWarningIcon(50, Y_ICON - 2);
             gfx.drawWarningText("WARNING!", Y_MAIN_TEXT, ILI9341_YELLOW, true);
-            gfx.drawWarningText("Top up wash fluid.", Y_SECOND_TEXT, ILI9341_YELLOW);
+            gfx.drawWarningText("Top up wash fluid.", Y_SECOND_TEXT);
             break;
         }
 

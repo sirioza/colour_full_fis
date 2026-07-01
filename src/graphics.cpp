@@ -241,20 +241,13 @@ void Graphics::drawScreenFromStrip(uint16_t startY, uint16_t endY) {
 
 void Graphics::drawWarningText(const char* text, int16_t y, uint16_t color, bool setTitle) {
   if(setTitle){
-    setFont(4);
+    drawText(text, 0, y, CENTER,  4, 0, color);
   } else {
-    setFont(5);
+    drawText(text, 0, y, CENTER,  5, 0, color);
   }
-
-  uint16_t w = u8g2.getUTF8Width(text);
-  int16_t x = (SCREEN_WIDTH - w) / 2;
-
-  u8g2.setForegroundColor(color);
-  u8g2.setCursor(x, y);
-  u8g2.print(text);
 }
 
-void Graphics::drawText(const char* text, int16_t x, int16_t y, TextAlignment aligment, int font, uint8_t max_width, uint16_t color)
+void Graphics::drawText(const char* text, int16_t x, int16_t y, TextAlignment aligment, int font, uint8_t clear_width, uint16_t color)
 {
   setFont(font);
 
@@ -264,19 +257,20 @@ void Graphics::drawText(const char* text, int16_t x, int16_t y, TextAlignment al
   switch (aligment) {
     case CENTER:
       x = (SCREEN_WIDTH - w) / 2;
-      if (max_width) {
-        clearTextOverBackground(x, y - u8g2.getFontAscent(), max_width, h, 0, 0);
+      if (clear_width) {
+        clearTextOverBackground(x, y - u8g2.getFontAscent(), clear_width, h, 0, 0);
       }
       break;
     case RIGHT:
-      if (max_width) {
-        clearTextOverBackground(x - max_width - 4, y - u8g2.getFontAscent(), max_width + 8, h, 0, 0);
+      if (clear_width) {
+        clearTextOverBackground(x - clear_width - 4, y - u8g2.getFontAscent(), clear_width + 8, h, 2, 0);
       }
       x = x - w;
       break;
+    case LEFT:
     default:
-      if (max_width) {
-        clearTextOverBackground(x, y - u8g2.getFontAscent(), max_width, h, 0, 0);
+      if (clear_width) {
+        clearTextOverBackground(x, y - u8g2.getFontAscent(), clear_width, h, 0, 0);
       }
       break;
   }

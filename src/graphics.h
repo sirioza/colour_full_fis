@@ -23,27 +23,20 @@ class Graphics {
     void drawLine(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color);
     void drawIcon(const uint8_t icon[19][4], uint8_t x, uint16_t y, uint16_t color, uint8_t scale = 6);
     void drawOilPressureWarningIcon(int16_t x, int16_t y, uint16_t color);
-    void drawAbsWarningIcon(int16_t x, int16_t y, uint16_t color);
+    void drawAbsWarningIcon(int16_t x, int16_t y, uint16_t color = ILI9341_YELLOW);
     void drawBrakeWarningIcon(int16_t x, int16_t y, uint16_t color);
     void drawHandbrakeWarningIcon(int16_t x, int16_t y, uint16_t color);
-    void drawCoolantWarningIcon(int16_t x, int16_t y, uint16_t color);
-    void drawAirbagWarningIcon(int16_t x, int16_t y, uint16_t color);
-    void drawFuelWarningIcon(int16_t x, int16_t y, uint16_t color);
-    void drawWashWarningIcon(int16_t x, int16_t y, uint16_t color);
+    void drawCoolantWarningIcon(int16_t x, int16_t y, uint16_t color = ILI9341_YELLOW);
+    void drawAirbagWarningIcon(int16_t x, int16_t y, uint16_t color = ILI9341_YELLOW);
+    void drawFuelWarningIcon(int16_t x, int16_t y, uint16_t color = ILI9341_YELLOW);
+    void drawWashWarningIcon(int16_t x, int16_t y, uint16_t color = ILI9341_YELLOW);
     void drawDoorWarningIcon(int16_t x, int16_t y, uint16_t color);
-    void drawWarningText(const char* text, int16_t y, uint16_t color, bool setTitle = false);
+    void drawWarningText(const char* text, int16_t y, uint16_t color = ILI9341_YELLOW, bool setTitle = false);
     void clearTextOverBackground(int16_t x, int16_t y, uint16_t w, uint16_t h, int16_t left_padding = 4, uint8_t right_padding = 4);
     void drawHeaderSeparator();
     void drawScreenBackgroundKeepingHeaderSeparator(bool& headerSeparatorDrawn);
     void drawScreenFromStrip(uint16_t startY = 0, uint16_t endY = 320);
-    void drawText(
-      const char* text,
-      int16_t x,
-      int16_t y,
-      TextAlignment aligment = LEFT,
-      int font = 1,
-      uint8_t max_width = 0,
-      uint16_t color = ILI9341_WHITE);
+    void drawText(const char* text, int16_t x, int16_t y, TextAlignment aligment = LEFT, int font = 1, uint8_t clear_width = 0, uint16_t color = ILI9341_WHITE);
     void setFont(int font);
 
     private:
